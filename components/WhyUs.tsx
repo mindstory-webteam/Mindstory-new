@@ -48,7 +48,7 @@ export default function WhyUs() {
   );
 
   return (
-    <section id="about" ref={root} className="bg-paper py-24 md:py-36">
+    <section id="why-us" ref={root} className="bg-paper py-24 md:py-36">
       <div className="container-x">
         <p data-reveal className="eyebrow text-muted">Why choose Mindstory</p>
 

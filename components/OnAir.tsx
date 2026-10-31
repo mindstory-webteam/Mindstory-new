@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import RetroTV, { type TVChannel } from "./RetroTV";
 import DomeGallery from "./DomeGallery";
-import { gsap, useGSAP } from "@/lib/gsap";
+import { gsap, useGSAP, ScrollTrigger } from "@/lib/gsap";
 import { blogs, caseStudies } from "@/lib/data";
 
 const WP = "https://mindstory.in/wp-content/uploads";
@@ -414,20 +414,84 @@ const CHANNELS: Channel[] = [
   { number: 9, name: "Insights", label: "Newsroom", layout: "news", duration: 13 },
 ];
 
-const ICONS: Record<Layout, React.ReactNode> = {
-  dome: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4"><circle cx="12" cy="12" r="9" /><ellipse cx="12" cy="12" rx="4" ry="9" /><path d="M3 12h18" /></svg>
-  ),
-  showreel: (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" /></svg>
-  ),
-  mosaic: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4"><rect x="3" y="3" width="8" height="18" rx="2" /><rect x="13" y="3" width="8" height="8" rx="2" /><rect x="13" y="13" width="8" height="8" rx="2" /></svg>
-  ),
-  news: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 9h10M7 13h6M3 17h18" /></svg>
-  ),
-};
+/* ══════════════════════════════════════════════════════════════════════
+   BALLOONS — drawn in SVG above the cabinet. The SVG's bottom edge sits on
+   the cabinet top; every string ties to the same knot at (600, 620).
+   ══════════════════════════════════════════════════════════════════════ */
+
+const TIE = { x: 600, y: 620 };
+const BALLOONS = [
+  { cx: 410, cy: 190, rx: 92, ry: 108, fill: "#f6811f", shine: "#ffc591", knot: "#d26c05" },
+  { cx: 575, cy: 118, rx: 96, ry: 112, fill: "#0c0b0a", shine: "#5a5550", knot: "#000000" },
+  { cx: 735, cy: 205, rx: 88, ry: 104, fill: "#f7f4ef", shine: "#ffffff", knot: "#d9d2c6" },
+];
+// shard directions for the "pop" burst
+const SHARDS = Array.from({ length: 9 }, (_, i) => {
+  const a = (i / 9) * Math.PI * 2 + (i % 2 ? 0.25 : -0.15);
+  return { dx: Math.cos(a), dy: Math.sin(a), r: 1 + (i % 3) * 0.35, rot: i * 47 };
+});
+
+function Balloons() {
+  return (
+    <svg
+      viewBox="0 0 1000 620"
+      className="pointer-events-none absolute left-[10%] w-[80%] overflow-visible"
+      style={{ bottom: "71.1%" }}
+      aria-hidden
+    >
+      <g data-bunch>
+        {BALLOONS.map((b, i) => {
+          const knotY = b.cy + b.ry;
+          return (
+            <g key={i} data-balloon={i}>
+              {/* string */}
+              <path
+                data-string
+                d={`M${b.cx} ${knotY + 10} Q ${(b.cx + TIE.x) / 2 + (i - 1) * 30} ${(knotY + TIE.y) / 2} ${TIE.x} ${TIE.y}`}
+                fill="none"
+                stroke="#6f6a63"
+                strokeWidth="2.5"
+              />
+              {/* balloon body */}
+              <g data-body>
+                <ellipse cx={b.cx} cy={b.cy} rx={b.rx} ry={b.ry} fill={b.fill} stroke={i === 2 ? "#e6e0d6" : "none"} strokeWidth="3" />
+                <ellipse cx={b.cx - b.rx * 0.38} cy={b.cy - b.ry * 0.42} rx={b.rx * 0.18} ry={b.ry * 0.26} fill={b.shine} opacity="0.7" transform={`rotate(-25 ${b.cx - b.rx * 0.38} ${b.cy - b.ry * 0.42})`} />
+                <path d={`M${b.cx - 12} ${knotY + 12} L${b.cx} ${knotY - 2} L${b.cx + 12} ${knotY + 12} Z`} fill={b.knot} />
+                {i === 1 && (
+                  <text x={b.cx} y={b.cy + 22} textAnchor="middle" fontFamily="Rubik Variable, Rubik, sans-serif" fontWeight="700" fontSize="70" fill="#f6811f">
+                    M
+                  </text>
+                )}
+              </g>
+              {/* pop burst */}
+              <g data-burst opacity="0">
+                {SHARDS.map((s, k) => (
+                  <rect
+                    key={k}
+                    data-shard
+                    data-dx={s.dx * (b.rx + 70) * s.r}
+                    data-dy={s.dy * (b.ry + 60) * s.r}
+                    x={b.cx - 7}
+                    y={b.cy - 4}
+                    width="14"
+                    height="8"
+                    rx="2"
+                    fill={k % 3 === 0 ? "#f6811f" : b.fill}
+                    stroke={i === 2 ? "#d9d2c6" : "none"}
+                    transform={`rotate(${s.rot} ${b.cx} ${b.cy})`}
+                  />
+                ))}
+                <text data-pop x={b.cx} y={b.cy + 18} textAnchor="middle" fontFamily="Rubik Variable, Rubik, sans-serif" fontWeight="800" fontSize="64" fill="#f6811f" stroke="#ffffff" strokeWidth="8" paintOrder="stroke">
+                  POP!
+                </text>
+              </g>
+            </g>
+          );
+        })}
+      </g>
+    </svg>
+  );
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    SECTION
@@ -436,15 +500,15 @@ const ICONS: Record<Layout, React.ReactNode> = {
 export default function OnAir() {
   const [channel, setChannel] = useState(0);
   const [mono, setMono] = useState(false);
-  const [auto, setAuto] = useState(true);
   const [compact, setCompact] = useState(false);
 
+  const root = useRef<HTMLElement>(null);
   const tvRef = useRef<HTMLDivElement>(null);
-  const bars = useRef<(HTMLSpanElement | null)[]>([]);
   const elapsed = useRef(0);
   const hovering = useRef(false);
   const lastTouch = useRef(0);
   const inView = useRef(false);
+  const landed = useRef(false);
 
   // phones get fewer, larger dome tiles
   useEffect(() => {
@@ -464,23 +528,19 @@ export default function OnAir() {
 
   const goTo = (i: number) => {
     elapsed.current = 0;
-    bars.current.forEach((b) => b && (b.style.transform = "scaleX(0)"));
     setChannel(i);
   };
 
-  // automatic channel switching; pauses on hover, after a touch, off-screen or in a hidden tab
+  // automatic channel switching once the TV has landed; pauses on hover, after a touch, off-screen or in a hidden tab
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
     const tick = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
-      const paused = !auto || !inView.current || hovering.current || document.hidden || now - lastTouch.current < 6000;
+      const paused = !landed.current || !inView.current || hovering.current || document.hidden || now - lastTouch.current < 6000;
       if (!paused) elapsed.current += dt;
-      const dur = CHANNELS[channel].duration;
-      const bar = bars.current[channel];
-      if (bar) bar.style.transform = `scaleX(${Math.min(elapsed.current / dur, 1)})`;
-      if (elapsed.current >= dur) {
+      if (elapsed.current >= CHANNELS[channel].duration) {
         goTo((channel + 1) % CHANNELS.length);
         return;
       }
@@ -488,7 +548,102 @@ export default function OnAir() {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [auto, channel]);
+  }, [channel]);
+
+  /* ─────────── balloon flight → pop → fall → land, then grow on scroll ─────────── */
+  useGSAP(
+    () => {
+      const fly = root.current!.querySelector<HTMLElement>("[data-fly]")!;
+      const grow = root.current!.querySelector<HTMLElement>("[data-grow]")!;
+      const shadow = root.current!.querySelector<HTMLElement>("[data-shadow]")!;
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      // TV grows from small to full size as you scroll it into the middle of the screen
+      gsap.fromTo(
+        grow,
+        { scale: 0.58 },
+        {
+          scale: 1,
+          ease: "none",
+          transformOrigin: "50% 100%",
+          scrollTrigger: { trigger: grow, start: "top 85%", end: "center 55%", scrub: 0.6 },
+        }
+      );
+
+      const land = () => {
+        gsap.set("[data-bunch]", { autoAlpha: 0 });
+        gsap.set(fly, { x: 0, yPercent: 0, rotation: 0 });
+        gsap.set(shadow, { x: 0, scaleX: 1, opacity: 1 });
+        landed.current = true;
+      };
+
+      if (reduced) {
+        land();
+        return;
+      }
+
+      // parked off-screen until the section comes into view
+      gsap.set(fly, { x: -4000, yPercent: -24, rotation: -8, transformOrigin: "50% 100%" });
+      gsap.set(shadow, { x: -4000, scaleX: 0.35, opacity: 0.12 });
+      gsap.set("[data-burst] [data-shard]", { x: 0, y: 0, opacity: 1 });
+      gsap.set("[data-pop]", { scale: 0, transformOrigin: "50% 50%" });
+
+      const play = () => {
+        // start just past the left edge of the screen (x is in the TV's own, scaled, space)
+        // measure the slot (grow), not the TV — the TV is still parked off-screen at this point
+        const r = grow.getBoundingClientRect();
+        const s = Number(gsap.getProperty(grow, "scale")) || 1;
+        const startX = -(r.right + 120) / s;
+
+        const tl = gsap.timeline({ onComplete: () => (landed.current = true) });
+
+        // 1 · drift in under the balloons, bobbing and swaying
+        tl.fromTo([fly, shadow], { x: startX }, { x: 0, duration: 2.8, ease: "power2.out" }, 0)
+          .fromTo(fly, { rotation: -9 }, { rotation: 4, duration: 2.8, ease: "sine.inOut" }, 0)
+          .to(fly, { rotation: 0, duration: 0.6, ease: "sine.inOut" }, 2.8)
+          .fromTo(fly, { yPercent: -24 }, { yPercent: -29, duration: 0.9, ease: "sine.inOut", yoyo: true, repeat: 3 }, 0)
+          .fromTo("[data-bunch]", { rotation: 7 }, { rotation: -5, duration: 1.4, ease: "sine.inOut", yoyo: true, repeat: 2, svgOrigin: `${TIE.x} ${TIE.y}` }, 0);
+
+        // 2 · pop! pop! pop! — each pop lets the set dip and tilt
+        const popAt = [3.5, 3.85, 4.2];
+        popAt.forEach((t, i) => {
+          const b = `[data-balloon="${i}"]`;
+          tl.to(`${b} [data-body]`, { scale: 1.18, duration: 0.12, ease: "power2.out", transformOrigin: "50% 50%" }, t - 0.12)
+            .set(`${b} [data-body]`, { opacity: 0 }, t)
+            .set(`${b} [data-burst]`, { opacity: 1 }, t)
+            .to(`${b} [data-shard]`, {
+              x: (k: number, el: Element) => Number((el as SVGElement).dataset.dx),
+              y: (k: number, el: Element) => Number((el as SVGElement).dataset.dy) + 40,
+              rotation: "+=180",
+              opacity: 0,
+              duration: 0.6,
+              ease: "power2.out",
+            }, t)
+            .fromTo(`${b} [data-pop]`, { scale: 0 }, { scale: 1, duration: 0.25, ease: "back.out(3)" }, t)
+            .to(`${b} [data-pop]`, { opacity: 0, y: -30, duration: 0.35 }, t + 0.3)
+            .to(`${b} [data-string]`, { y: 90, opacity: 0, duration: 0.5, ease: "power2.in" }, t)
+            .to(fly, { yPercent: `+=${3 + i * 2}`, rotation: i === 1 ? -3 : 4, duration: 0.18, ease: "power2.out" }, t + 0.02);
+        });
+
+        // 3 · nothing left holding it up — fall and land with a squash
+        const fall = popAt[2] + 0.2;
+        tl.to(fly, { yPercent: 0, rotation: 0, duration: 0.5, ease: "power3.in" }, fall)
+          .to(shadow, { scaleX: 1, opacity: 1, duration: 0.5, ease: "power3.in" }, fall)
+          .to(fly, { scaleY: 0.9, scaleX: 1.05, duration: 0.09, ease: "power1.out" }, fall + 0.5)
+          .to(fly, { scaleY: 1, scaleX: 1, duration: 0.7, ease: "elastic.out(1.1, 0.35)" }, fall + 0.59)
+          .fromTo("[data-dust]", { scale: 0.3, opacity: 0.6 }, { scale: 1.6, opacity: 0, duration: 0.8, ease: "power2.out", stagger: 0.04, immediateRender: false }, fall + 0.5)
+          .set("[data-bunch]", { autoAlpha: 0 }, fall + 1);
+      };
+
+      const st = ScrollTrigger.create({ trigger: grow, start: "top 75%", once: true, onEnter: play });
+      // page opened below this section → skip straight to the landed TV
+      if (st.scroll() > st.end) {
+        st.kill();
+        land();
+      }
+    },
+    { scope: root }
+  );
 
   const screen = useMemo(() => {
     switch (CHANNELS[channel].layout) {
@@ -521,7 +676,7 @@ export default function OnAir() {
   }, [channel, compact]);
 
   return (
-    <section id="on-air" className="relative overflow-hidden border-t border-line bg-paper py-24 text-ink md:py-32">
+    <section id="on-air" ref={root} className="relative overflow-hidden border-t border-line bg-paper py-24 text-ink md:py-32">
       {/* soft studio light on the wall */}
       <div className="pointer-events-none absolute left-1/2 top-[48%] h-[60vw] max-h-[760px] w-[80vw] max-w-[1000px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,#ffffff,rgba(255,255,255,0.6)_45%,transparent)]" />
 
@@ -534,88 +689,46 @@ export default function OnAir() {
             Stories we&apos;ve put <span className="text-brand">on air.</span>
           </h2>
           <p data-reveal className="mx-auto mt-5 max-w-lg text-[17px] leading-relaxed text-muted">
-            Our work on four channels. It surfs by itself — or pick a channel and take the remote.
+            Our work on four channels. It surfs by itself — or turn the VHF knob to change channel.
           </p>
         </div>
 
-        <div
-          ref={tvRef}
-          className="mx-auto mt-10 max-w-[820px] md:mt-14"
-          onPointerEnter={(e) => {
-            if (e.pointerType === "mouse") hovering.current = true;
-          }}
-          onPointerLeave={() => (hovering.current = false)}
-          onPointerDown={(e) => {
-            if (e.pointerType !== "mouse") lastTouch.current = performance.now();
-          }}
-        >
-          <RetroTV channels={CHANNELS} channel={channel} onChannelChange={goTo} mono={mono} onMonoChange={setMono}>
-            {/* container-type lets every layout size itself in cqw/cqh of the screen */}
-            <div
-              key={channel}
-              className="absolute inset-0 [container-type:size]"
-              style={{ filter: mono ? "grayscale(1) contrast(1.08)" : "none", transition: "filter .6s ease" }}
-            >
-              {screen}
-            </div>
-          </RetroTV>
-        </div>
+        {/* grow: scroll-scrubbed size · fly: the balloon intro */}
+        <div data-grow className="relative mx-auto mt-28 max-w-[820px] sm:mt-16 md:mt-14">
+          {/* floor shadow + landing dust */}
+          <div data-shadow className="pointer-events-none absolute -bottom-[1%] left-[6%] right-[6%] h-[6%] rounded-[50%] bg-[radial-gradient(closest-side,rgba(60,35,15,0.35),transparent)]" />
+          <span data-dust className="pointer-events-none absolute -bottom-[2%] left-[4%] opacity-0 h-[7%] w-[18%] rounded-full bg-[#d9cfc0]/70 blur-md" />
+          <span data-dust className="pointer-events-none absolute -bottom-[2%] right-[4%] opacity-0 h-[7%] w-[18%] rounded-full bg-[#d9cfc0]/70 blur-md" />
 
-        {/* remote: one button per layout, with auto-surf progress */}
-        <div className="mx-auto mt-10 max-w-[820px]">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {CHANNELS.map((c, i) => {
-              const active = i === channel;
-              return (
-                <button
-                  key={c.number}
-                  type="button"
-                  onClick={() => goTo(i)}
-                  aria-pressed={active}
-                  className={`relative flex items-center gap-3 overflow-hidden rounded-2xl border px-4 py-3 text-left transition-colors duration-300 ${
-                    active ? "border-ink bg-ink text-white" : "border-line bg-white text-ink hover:border-ink/40"
-                  }`}
-                >
-                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${active ? "bg-brand text-white" : "bg-brand-soft text-brand-deep"}`}>
-                    {ICONS[c.layout]}
-                  </span>
-                  <span className="min-w-0">
-                    <span className={`block text-[11px] font-medium tracking-[0.18em] ${active ? "text-white/50" : "text-muted"}`}>
-                      CH {String(c.number).padStart(2, "0")}
-                    </span>
-                    <span className="block truncate text-[15px] font-medium">{c.label}</span>
-                  </span>
-                  <span className="absolute inset-x-0 bottom-0 h-[3px]">
-                    <span
-                      ref={(el) => {
-                        bars.current[i] = el;
-                      }}
-                      className="block h-full origin-left bg-brand"
-                      style={{ transform: "scaleX(0)" }}
-                    />
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-5 flex flex-col items-center justify-between gap-3 text-sm text-muted sm:flex-row">
-            <button
-              type="button"
-              onClick={() => setAuto((a) => !a)}
-              aria-pressed={auto}
-              className="inline-flex items-center gap-2.5 rounded-full border border-line bg-white px-4 py-2 font-medium text-ink transition-colors hover:border-ink/40"
-            >
-              <span className={`relative h-4 w-7 rounded-full transition-colors ${auto ? "bg-brand" : "bg-line"}`}>
-                <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform ${auto ? "translate-x-3.5" : "translate-x-0.5"}`} />
-              </span>
-              Auto-surf {auto ? "on" : "off"}
-            </button>
-            <p className="text-center">
-              <b className="font-medium text-ink">VHF</b> knob changes channel · <b className="font-medium text-ink">UHF</b> colour / B&amp;W · orange light is power
-            </p>
+          <div
+            data-fly
+            ref={tvRef}
+            className="relative"
+            onPointerEnter={(e) => {
+              if (e.pointerType === "mouse") hovering.current = true;
+            }}
+            onPointerLeave={() => (hovering.current = false)}
+            onPointerDown={(e) => {
+              if (e.pointerType !== "mouse") lastTouch.current = performance.now();
+            }}
+          >
+            <Balloons />
+            <RetroTV channels={CHANNELS} channel={channel} onChannelChange={goTo} mono={mono} onMonoChange={setMono}>
+              {/* container-type lets every layout size itself in cqw/cqh of the screen */}
+              <div
+                key={channel}
+                className="absolute inset-0 [container-type:size]"
+                style={{ filter: mono ? "grayscale(1) contrast(1.08)" : "none", transition: "filter .6s ease" }}
+              >
+                {screen}
+              </div>
+            </RetroTV>
           </div>
         </div>
+
+        <p className="mx-auto mt-10 max-w-[820px] text-center text-sm text-muted">
+          <b className="font-medium text-ink">VHF</b> knob changes channel · <b className="font-medium text-ink">UHF</b> colour / B&amp;W · orange light is power
+        </p>
       </div>
     </section>
   );
