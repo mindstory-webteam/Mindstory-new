@@ -6,7 +6,7 @@ export default function AboutHero() {
   return (
     <section
       id="top"
-      className="relative isolate overflow-hidden bg-ink pb-16 pt-36 text-white md:pb-20 md:pt-44"
+      className="relative isolate overflow-hidden bg-ink pb-48 pt-36 text-white md:pb-44 md:pt-44 lg:min-h-[760px]"
     >
       {/* starfield — matches the space feel of the home hero */}
       <div
@@ -25,96 +25,91 @@ export default function AboutHero() {
         }}
       />
 
+      {/* glow + orbit ring around the rocket's home on the right */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-32 bottom-0 -z-10 h-[520px] w-[520px] rounded-full bg-brand/15 blur-[120px]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-40 right-[2%] -z-10 hidden h-[480px] w-[480px] rounded-full border border-dashed border-white/10 md:block"
+      />
+
+      {/* ── copy ── */}
       <div className="container-x">
-        <div className="grid items-end gap-6 lg:grid-cols-12 lg:gap-10">
-          {/* ── left: copy ── */}
-          <div className="lg:col-span-7 lg:pb-10">
-            <nav data-reveal="true" aria-label="Breadcrumb" className="text-sm text-white/40">
-              <Link href="/" className="transition-colors hover:text-brand">
-                Home
-              </Link>
-              <span className="mx-2">/</span>
-              <span className="text-white/70">About</span>
-            </nav>
+        <div className="max-w-4xl">
+          <nav data-reveal="true" aria-label="Breadcrumb" className="text-sm text-white/40">
+            <Link href="/" className="transition-colors hover:text-brand">
+              Home
+            </Link>
+            <span className="mx-2">/</span>
+            <span className="text-white/70">About</span>
+          </nav>
 
-            <p data-reveal="true" className="eyebrow mt-10 text-white/40">
-              About Mindstory
-            </p>
+          <p data-reveal="true" className="eyebrow mt-10 text-white/40">
+            About Mindstory
+          </p>
 
-            <h1
-              data-reveal-words="true"
-              className="mt-6 text-[clamp(2.8rem,6.6vw,6.2rem)] font-medium leading-[0.95] tracking-[-0.04em]"
-            >
-              We tell stories that <span className="text-brand">sell brands.</span>
-            </h1>
+          <h1
+            data-reveal-words="true"
+            className="mt-6 text-[clamp(2.8rem,7vw,6.6rem)] font-medium leading-[0.95] tracking-[-0.04em]"
+          >
+            We tell stories that <span className="text-brand">sell brands.</span>
+          </h1>
 
-            <p data-reveal="true" className="mt-8 max-w-xl text-lg leading-relaxed text-white/60">
-              A digital marketing agency born in Thrissur in 2016 — now a 30+ strong team of
-              strategists, designers, film-makers and performance marketers working with brands
-              across Kerala and the GCC.
-            </p>
+          <p data-reveal="true" className="mt-8 max-w-xl text-lg leading-relaxed text-white/60">
+            A digital marketing agency born in Thrissur in 2016 — now a 30+ strong team of
+            strategists, designers, film-makers and performance marketers working with brands
+            across Kerala and the GCC.
+          </p>
 
-            <div data-reveal="true" className="mt-8 flex flex-wrap gap-2">
-              {["Google Partner", "Thrissur · Kochi · GCC", "Since 2016"].map((chip) => (
-                <span
-                  key={chip}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand" />
-                  {chip}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* ── right: astronaut rocket with the flying-button engine ── */}
-          <div className="relative lg:col-span-5">
-            {/* glow + orbit ring behind the launch pad */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand/20 blur-[110px]"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute left-1/2 top-[46%] h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-white/10 md:h-[440px] md:w-[440px]"
-            />
-
-            <div className="relative h-[480px] md:h-[620px]">
-              <FlyingCraft
-                bare
-                label="Launch the Mindstory rocket"
-                craftClassName="h-[270px] w-[150px] md:h-[360px] md:w-[200px]"
-                theme="dark"
-                size="extra-large"
-                jets={1}
-                thrusters={false}
-                altitude={190}
-                hoverTime={3}
-                wobble={1.2}
-                smoke={1.2}
-                turbulence={1}
-                thrustColor="#f6811f"
-                smokeColor="#f1ece6"
-                carryCursor={false}
-                autoLaunch={9}
-                autoLaunchDelay={1.4}
+          <div data-reveal="true" className="mt-8 flex flex-wrap gap-2">
+            {["Google Partner", "Thrissur · Kochi · GCC", "Since 2016"].map((chip) => (
+              <span
+                key={chip}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80"
               >
-                <AstronautRocket />
-              </FlyingCraft>
-
-              {/* launch pad */}
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
-              />
-            </div>
-
-            <p className="mt-3 text-center text-xs uppercase tracking-[0.18em] text-white/30">
-              Hover the rocket to launch
-            </p>
+                <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+                {chip}
+              </span>
+            ))}
           </div>
         </div>
       </div>
+
+      {/* ── flight stage: covers the whole banner, clicks pass through to the copy ── */}
+      <div className="pointer-events-none absolute inset-0 z-10">
+        <FlyingCraft
+          bare
+          roam
+          globalPointer
+          homeX={0.86}
+          label="Launch the Mindstory rocket"
+          craftClassName="h-[126px] w-[70px] md:h-[162px] md:w-[90px]"
+          theme="dark"
+          size="medium"
+          jets={1}
+          thrusters={false}
+          altitude={220}
+          hoverTime={10}
+          wobble={1.2}
+          smoke={0.7}
+          turbulence={1}
+          thrustColor="#f6811f"
+          smokeColor="#f1ece6"
+          carryCursor={false}
+          autoLaunch={16}
+          autoLaunchDelay={1.4}
+        >
+          <AstronautRocket />
+        </FlyingCraft>
+      </div>
+
+      {/* launch pad */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-0 right-0 h-px w-1/2 bg-gradient-to-r from-transparent via-white/20 to-white/5"
+      />
     </section>
   );
 }

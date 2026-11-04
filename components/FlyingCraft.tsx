@@ -643,6 +643,9 @@ interface EngineProps {
   smokeColor: string;
   theme: Theme;
   onClick?: ClickHandler;
+  roam: boolean;
+  homeX: number;
+  globalPointer: boolean;
 }
 
 interface EngineArgs {
@@ -841,7 +844,8 @@ function createEngine({ root, canvas, button, cursor, ramp, props }: EngineArgs)
     last: 0,
     raf: 0,
     simTime: 0,
-    activity: 0
+    activity: 0,
+    roam: { t: 0, next: 0, tx: 0, ty: 0, side: 1 }
   };
 
   let sim: Sim | null = null;
@@ -947,7 +951,7 @@ function createEngine({ root, canvas, button, cursor, ramp, props }: EngineArgs)
 
   const home = () => {
     const [lo, hi] = xLimits();
-    if (!rampOn()) return clamp(s.W / 2, lo, hi);
+    if (!rampOn()) return clamp(s.W * clamp(num(props.current.homeX, 0.5), 0, 1), lo, hi);
     const g = rampGeo();
     return clamp(Math.min(g.foot * 0.5, g.x0 - 90, g.clear - s.bw / 2 - 40), lo, hi);
   };
@@ -1301,8 +1305,33 @@ function createEngine({ root, canvas, button, cursor, ramp, props }: EngineArgs)
     s.climbT = 1.15 + (s.alt - s.y) / 420;
     s.hold = Math.max(0, num(P.hoverTime, 2.4));
     s.xRef = s.x;
+    s.roam = { t: 0, next: 0, tx: s.x, ty: s.alt, side: s.x > s.W / 2 ? -1 : 1 };
     wake();
     return true;
+  };
+
+  /* Roam: while hovering, glide between random waypoints across the whole stage,
+     then head back home before the normal descent. */
+  const roamTop = () => Math.max(60, s.H - s.bh - podH() - 70 - REST);
+  const roamStep = (dt: number) => {
+    const r = s.roam;
+    const [lo, hi] = xLimits();
+    const pad = Math.min(60, (hi - lo) * 0.1);
+    const goingHome = s.pt >= s.hold - 2.4;
+    r.t += dt;
+    if (goingHome) {
+      r.tx = home();
+      r.ty = Math.max(70, s.H * 0.22);
+    } else if (r.t >= r.next) {
+      const span = hi - lo - 2 * pad;
+      r.side = -r.side;
+      const half = r.side > 0 ? [0.55, 1] : [0, 0.45];
+      r.tx = lo + pad + span * (half[0] + Math.random() * (half[1] - half[0]));
+      r.ty = Math.max(70, s.H * 0.25) + Math.random() * Math.max(0, roamTop() - Math.max(70, s.H * 0.25));
+      r.next = r.t + 1.7 + Math.random() * 0.9;
+    }
+    s.xRef += (r.tx - s.xRef) * (1 - Math.exp(-dt / 0.9));
+    s.alt += (r.ty - s.alt) * (1 - Math.exp(-dt / 1.1));
   };
 
   const along = (g: RampGeo, u: number): number[] => {
@@ -1449,16 +1478,19 @@ function createEngine({ root, canvas, button, cursor, ramp, props }: EngineArgs)
         s.pt = 0;
       }
     } else if (s.phase === 'hover') {
+      if (P.roam && !s.drag) roamStep(dt);
       const t = s.clock * 0.8;
       const yr = s.alt + 3.5 * wob * wave(t, s.seed);
       const vr = 3.5 * wob * 0.8 * waveD(t, s.seed);
       total = (G + 30 * (yr - s.y) + 8 * (vr - s.vy)) / (G * cs);
       control = true;
-      if (s.pt >= s.hold) {
+      const settled = !P.roam || (Math.abs(s.x - home()) < 28 && Math.abs(s.vx) < 60);
+      if (s.pt >= s.hold && (settled || s.pt >= s.hold + 4)) {
         s.phase = 'descend';
         s.pt = 0;
         s.vrPrev = 0;
         chooseLanding(0);
+        if (P.roam) s.landX = home();
       }
     } else if (s.phase === 'drag') {
       const yr = s.target.y - podH() - s.bh / 2 - REST;
@@ -1508,7 +1540,7 @@ function createEngine({ root, canvas, button, cursor, ramp, props }: EngineArgs)
     if (control) {
       const gust = 0.8 * wob * wave(s.clock * 1.7, s.seed + 3);
       const aCmd = s.phase === 'drag' ? hand * 0.75 : kp * (xt - s.x) - kd * s.vx;
-      const lean = s.boost ? 0.45 : 0.32;
+      const lean = s.boost ? 0.45 : P.roam && s.phase === 'hover' ? 0.42 : 0.32;
       const thRef = clamp(-Math.atan2(aCmd, G), -lean, lean);
       alphaCmd = -81 * (s.th - thRef) - 14 * s.w - gust;
     }
@@ -1814,12 +1846,38 @@ function createEngine({ root, canvas, button, cursor, ramp, props }: EngineArgs)
     }
   };
 
-  root.addEventListener('pointermove', onMove);
-  root.addEventListener('pointerenter', onMove);
-  root.addEventListener('pointerleave', onLeave);
-  root.addEventListener('pointerdown', onDown);
-  root.addEventListener('pointerup', onUp);
-  root.addEventListener('pointercancel', onUp);
+  const inside = (e: PointerEvent) => {
+    const r = root.getBoundingClientRect();
+    return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+  };
+  const gMove = (e: PointerEvent) => {
+    if (inside(e) || s.drag) onMove(e);
+    else if (s.pointer.in) onLeave();
+  };
+  const gDown = (e: PointerEvent) => {
+    if (inside(e)) onDown(e);
+  };
+  const globalPtr = Boolean(props.current.globalPointer);
+  const evTarget: Window | HTMLDivElement = globalPtr ? window : root;
+  const listen = (on: boolean) => {
+    const fn = (on ? evTarget.addEventListener : evTarget.removeEventListener).bind(evTarget) as (
+      t: string,
+      h: (e: PointerEvent) => void,
+      o?: AddEventListenerOptions
+    ) => void;
+    if (globalPtr) {
+      fn('pointermove', gMove, { passive: true });
+      fn('pointerdown', gDown);
+    } else {
+      fn('pointermove', onMove);
+      fn('pointerenter', onMove);
+      fn('pointerleave', onLeave);
+      fn('pointerdown', onDown);
+    }
+    fn('pointerup', onUp);
+    fn('pointercancel', onUp);
+  };
+  listen(true);
   button.addEventListener('click', onClick);
 
   const ro = new ResizeObserver(measure);
@@ -1841,12 +1899,7 @@ function createEngine({ root, canvas, button, cursor, ramp, props }: EngineArgs)
       ro.disconnect();
       dropStrip();
       if (s.raf) cancelAnimationFrame(s.raf);
-      root.removeEventListener('pointermove', onMove);
-      root.removeEventListener('pointerenter', onMove);
-      root.removeEventListener('pointerleave', onLeave);
-      root.removeEventListener('pointerdown', onDown);
-      root.removeEventListener('pointerup', onUp);
-      root.removeEventListener('pointercancel', onUp);
+      listen(false);
       button.removeEventListener('click', onClick);
       if (sim) sim.dispose();
     }
@@ -2178,6 +2231,13 @@ export interface FlyingCraftProps {
   autoLaunch?: number;
   /** Seconds before the first automatic take-off. */
   autoLaunchDelay?: number;
+  /** After take-off, fly around the whole stage for `hoverTime` seconds, then land at home. */
+  roam?: boolean;
+  /** Resting x position as a fraction of the stage width (0–1). */
+  homeX?: number;
+  /** Listen for the pointer on the window, so the stage can be pointer-events:none
+      and sit over other content (links underneath stay clickable). */
+  globalPointer?: boolean;
   onClick?: ClickHandler;
   theme?: Theme;
   size?: Size;
@@ -2208,6 +2268,9 @@ export default function FlyingCraft({
   label,
   autoLaunch = 0,
   autoLaunchDelay = 1.2,
+  roam = false,
+  homeX = 0.5,
+  globalPointer = false,
   onClick,
   theme = 'dark',
   size = 'medium',
@@ -2266,7 +2329,10 @@ export default function FlyingCraft({
     thrustColor: thrust,
     smokeColor: smokeTone,
     theme,
-    onClick
+    onClick,
+    roam,
+    homeX,
+    globalPointer
   };
 
   useEffect(() => {
@@ -2313,7 +2379,7 @@ export default function FlyingCraft({
 
   useEffect(() => {
     if (engineRef.current) engineRef.current.rehome();
-  }, [ramp]);
+  }, [ramp, homeX]);
 
   const face = light
     ? {
@@ -2335,7 +2401,7 @@ export default function FlyingCraft({
   return (
     <div
       ref={rootRef}
-      className={`group/fly relative isolate h-full min-h-[240px] w-full touch-manipulation overflow-hidden data-[carry]:cursor-none [&[data-dragging]:not([data-carry])]:cursor-grabbing ${className}`.trim()}
+      className={`group/fly relative isolate h-full min-h-[240px] w-full touch-manipulation overflow-hidden data-[carry]:cursor-none [&[data-dragging]:not([data-carry])]:cursor-grabbing ${globalPointer ? 'pointer-events-none' : ''} ${className}`.trim()}
       data-theme={theme}
       data-trigger={ramp ? 'click' : trigger}
       style={
@@ -2363,7 +2429,7 @@ export default function FlyingCraft({
       <button
         ref={buttonRef}
         type="button"
-        className={`group/craft invisible absolute top-0 left-0 z-[1] m-0 inline-flex cursor-pointer touch-none items-center justify-center border-0 leading-none font-medium tracking-[0.01em] whitespace-nowrap outline-none select-none [-webkit-tap-highlight-color:transparent] [background:var(--fly-bg)] [color:var(--fly-ink)] [font-family:inherit] [transform-origin:50%_50%] [will-change:transform] focus-visible:[outline:2px_solid_color-mix(in_srgb,var(--fly-ink)_60%,transparent)] focus-visible:[outline-offset:3px] group-data-[ready]/fly:visible group-data-[trigger=hover]/fly:cursor-default group-data-[carry]/fly:pointer-events-none group-data-[carry]/fly:cursor-none ${bare ? '' : hoverTone} ${craftClassName}`.trim()}
+        className={`group/craft invisible absolute top-0 left-0 z-[1] m-0 inline-flex cursor-pointer touch-none items-center justify-center border-0 leading-none font-medium tracking-[0.01em] whitespace-nowrap outline-none select-none [-webkit-tap-highlight-color:transparent] [background:var(--fly-bg)] [color:var(--fly-ink)] [font-family:inherit] [transform-origin:50%_50%] [will-change:transform] focus-visible:[outline:2px_solid_color-mix(in_srgb,var(--fly-ink)_60%,transparent)] focus-visible:[outline-offset:3px] group-data-[ready]/fly:visible group-data-[trigger=hover]/fly:cursor-default group-data-[carry]/fly:pointer-events-none group-data-[carry]/fly:cursor-none ${bare ? '' : hoverTone} ${globalPointer ? 'pointer-events-auto' : ''} ${craftClassName}`.trim()}
         aria-label={label}
         style={
           bare

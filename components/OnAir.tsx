@@ -9,6 +9,23 @@ import { blogs, caseStudies } from "@/lib/data";
 const WP = "https://mindstory.in/wp-content/uploads";
 
 /* ══════════════════════════════════════════════════════════════════════
+   YOUR VIDEOS — one video per channel (CH 10 – 13).
+   Put the files in /public/videos and edit the list below.
+   `name` shows on the TV's channel display, `title`/`tag` on screen.
+   `poster` is optional (a still shown while the video loads).
+   ══════════════════════════════════════════════════════════════════════ */
+
+type Video = { title: string; src: string; poster?: string; tag?: string };
+type ChannelVideo = Video & { number: number; name: string };
+
+const CHANNEL_VIDEOS: ChannelVideo[] = [
+  { number: 10, name: "Video One", title: "Video one", tag: "Brand film", src: "/videos/tv-1.mp4", poster: "/videos/video-1.jpg" },
+  { number: 11, name: "Video Two", title: "Video two", tag: "Campaign", src: "/videos/tv-2.mp4", poster: "/videos/video-2.jpg" },
+  { number: 12, name: "Video Three", title: "Video three", tag: "Movie promotion", src: "/videos/tv-3.mp4", poster: "/videos/video-3.jpg" },
+  { number: 13, name: "Video Four", title: "Video four", tag: "Client story", src: "/videos/tv-4.mp4", poster: "/videos/video-4.jpg" },
+];
+
+/* ══════════════════════════════════════════════════════════════════════
    "VIDEOS" — short Mindstory motion pieces built with GSAP.
    They play like video clips (progress, end, loop) and scale to any box.
    To use a real video instead, give a reel a `src` (e.g. "/videos/reel.mp4").
@@ -377,6 +394,169 @@ function NewsLayout({ stories, interval = 3.2 }: { stories: Story[]; interval?: 
   );
 }
 
+/* ── shared video player ─────────────────────────────────────────────── */
+
+type PlayerProps = {
+  video: Video;
+  muted: boolean;
+  loop?: boolean;
+  className?: string;
+  onEnd?: () => void;
+  onError?: () => void;
+  onProgress?: (p: number) => void;
+};
+
+/** <video> that autoplays reliably (muted set as a property), pauses when off-screen. */
+function VideoPlayer({ video, muted, loop, className = "", onEnd, onError, onProgress }: PlayerProps) {
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    v.muted = muted;
+    v.play().catch(() => {
+      // unmuted autoplay can be blocked by the browser — fall back to muted
+      if (!v.muted) {
+        v.muted = true;
+        v.play().catch(() => {});
+      }
+    });
+  }, [muted, video.src]);
+
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting && !document.hidden) v.play().catch(() => {});
+        else v.pause();
+      },
+      { threshold: 0.2 }
+    );
+    io.observe(v);
+    return () => io.disconnect();
+  }, [video.src]);
+
+  return (
+    <video
+      ref={ref}
+      key={video.src}
+      src={video.src}
+      poster={video.poster}
+      muted
+      playsInline
+      autoPlay
+      preload="metadata"
+      loop={loop}
+      className={className}
+      onEnded={onEnd}
+      onError={onError}
+      onTimeUpdate={(e) => {
+        const v = e.currentTarget;
+        if (v.duration) onProgress?.(v.currentTime / v.duration);
+      }}
+    />
+  );
+}
+
+/** Physical SOUND button on the TV's speaker grille — sits over RetroTV in [data-fly] space. */
+function TVSoundButton({ muted, onToggle }: { muted: boolean; onToggle: () => void }) {
+  return (
+    <div
+      className="absolute z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center [container-type:inline-size]"
+      style={{ left: "88.3%", top: "83.5%", width: "11%" }}
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle();
+        }}
+        aria-label={muted ? "Turn sound on" : "Turn sound off"}
+        aria-pressed={!muted}
+        className="group relative grid aspect-square w-[58cqw] place-items-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#4a4642,#151311_70%)] shadow-[0_0_0_4cqw_#d9d2c6,0_0_0_5cqw_#8a8178,0_6cqw_10cqw_rgba(0,0,0,.45),inset_0_2cqw_3cqw_rgba(255,255,255,.12)] transition-transform duration-150 active:scale-[0.92] focus-visible:outline-none focus-visible:ring-[3cqw] focus-visible:ring-brand"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          className={`w-[54%] transition-colors ${muted ? "text-white/55" : "text-brand"}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M11 5 6 9H2v6h4l5 4z" fill="currentColor" />
+          {muted ? <path d="m22 9-6 6M16 9l6 6" /> : <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />}
+        </svg>
+      </button>
+      <span className="mt-[9cqw] flex items-center gap-[5cqw] rounded-[4cqw] bg-[#e9e3d8] px-[7cqw] py-[3cqw] text-[11cqw] font-semibold uppercase tracking-[0.14em] text-ink shadow-[inset_0_-1px_0_rgba(0,0,0,.15)]">
+        <span
+          className={`inline-block h-[9cqw] w-[9cqw] rounded-full transition-all ${
+            muted ? "bg-[#6f6a63]" : "bg-brand shadow-[0_0_6cqw_2cqw_rgba(246,129,31,.8)]"
+          }`}
+          aria-hidden
+        />
+        Sound
+      </span>
+    </div>
+  );
+}
+
+/** Layout 5 — Video channel: one full-screen video. Moves to the next channel when it ends. */
+function VideoLayout({ video, number, muted, onFinish }: { video: Video; number: number; muted: boolean; onFinish?: () => void }) {
+  const [broken, setBroken] = useState(false);
+  const bar = useRef<HTMLSpanElement>(null);
+  const info = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    gsap.fromTo(info.current, { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, delay: 0.3, ease: "expo.out" });
+  }, []);
+
+  // file missing or unplayable → a "no signal" screen instead of a black one
+  if (broken) {
+    return (
+      <div className="absolute inset-0 grid place-items-center overflow-hidden bg-[#111] text-white">
+        <div className="absolute inset-0 opacity-25 [background:repeating-linear-gradient(0deg,#fff_0_1px,transparent_1px_3px)] animate-pulse" />
+        <div className="relative text-center">
+          <p className="text-[6cqw] font-semibold tracking-[0.12em]">NO SIGNAL</p>
+          <p className="mt-[1cqw] text-[1.8cqw] uppercase tracking-[0.3em] text-white/50">CH {String(number).padStart(2, "0")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-black text-white">
+      <VideoPlayer
+        video={video}
+        muted={muted}
+        className="absolute inset-0 h-full w-full object-cover"
+        onEnd={() => onFinish?.()}
+        onError={() => setBroken(true)}
+        onProgress={(p) => {
+          if (bar.current) bar.current.style.transform = `scaleX(${p})`;
+        }}
+      />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[32%] bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+
+      <div className="absolute left-[6%] top-[13%] flex items-center gap-[1cqw] rounded-[0.8cqw] bg-black/50 px-[1.4cqw] py-[0.6cqw] text-[1.7cqw] font-semibold uppercase tracking-[0.22em] backdrop-blur-sm">
+        <span className="inline-block h-[1.1cqw] w-[1.1cqw] animate-pulse rounded-full bg-brand" />
+        Now playing
+      </div>
+
+      <div ref={info} className="absolute bottom-[13%] left-[6%] right-[6%]">
+        {video.tag && <p className="text-[1.7cqw] font-medium uppercase tracking-[0.22em] text-brand">{video.tag}</p>}
+        <h3 className="mt-[0.6cqw] text-[4.2cqw] font-semibold leading-[1.05] tracking-[-0.02em]">{video.title}</h3>
+      </div>
+
+      <div className="absolute bottom-[7%] left-[6%] right-[6%] h-[0.6cqh] overflow-hidden rounded-full bg-white/25">
+        <span ref={bar} className="absolute inset-0 origin-left scale-x-0 bg-brand" />
+      </div>
+    </div>
+  );
+}
+
 /* ══════════════════════════════════════════════════════════════════════
    CONTENT + CHANNELS
    ══════════════════════════════════════════════════════════════════════ */
@@ -404,14 +584,16 @@ const STORIES: Story[] = [
   { img: `${WP}/Untitled-design-17.webp`, title: "How small businesses can still compete with bigger brands", tag: "Strategy" },
 ];
 
-type Layout = "dome" | "showreel" | "mosaic" | "news";
-type Channel = TVChannel & { layout: Layout; label: string; duration: number };
+type Layout = "dome" | "showreel" | "mosaic" | "news" | "video";
+type Channel = TVChannel & { layout: Layout; label: string; duration: number; video?: ChannelVideo };
 
 const CHANNELS: Channel[] = [
   { number: 3, name: "Success Stories", label: "3D Gallery", layout: "dome", duration: 10 },
   { number: 5, name: "Mindstory Showreel", label: "Showreel", layout: "showreel", duration: 15 },
   { number: 7, name: "Our Work", label: "Mosaic", layout: "mosaic", duration: 10 },
   { number: 9, name: "Insights", label: "Newsroom", layout: "news", duration: 13 },
+  // one channel per video — it moves on when the video ends; `duration` is only a safety cap
+  ...CHANNEL_VIDEOS.map((v): Channel => ({ number: v.number, name: v.name, label: v.title, layout: "video", duration: 180, video: v })),
 ];
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -500,6 +682,7 @@ function Balloons() {
 export default function OnAir() {
   const [channel, setChannel] = useState(0);
   const [mono, setMono] = useState(false);
+  const [muted, setMuted] = useState(true); // one sound setting for the whole TV
   const [compact, setCompact] = useState(false);
 
   const root = useRef<HTMLElement>(null);
@@ -653,6 +836,10 @@ export default function OnAir() {
         return <MosaicLayout tiles={TILES} />;
       case "news":
         return <NewsLayout stories={STORIES} />;
+      case "video": {
+        const ch = CHANNELS[channel];
+        return <VideoLayout video={ch.video!} number={ch.number} muted={muted} onFinish={() => goTo((channel + 1) % CHANNELS.length)} />;
+      }
       default:
         return (
           <DomeGallery
@@ -673,7 +860,7 @@ export default function OnAir() {
           />
         );
     }
-  }, [channel, compact]);
+  }, [channel, compact, muted]);
 
   return (
     <section id="on-air" ref={root} className="relative overflow-hidden border-t border-line bg-paper py-24 text-ink md:py-32">
@@ -689,7 +876,7 @@ export default function OnAir() {
             Stories we&apos;ve put <span className="text-brand">on air.</span>
           </h2>
           <p data-reveal className="mx-auto mt-5 max-w-lg text-[17px] leading-relaxed text-muted">
-            Our work on four channels. It surfs by itself — or turn the VHF knob to change channel.
+            Our work on eight channels. It surfs by itself — or turn the VHF knob to change channel.
           </p>
         </div>
 
@@ -723,11 +910,12 @@ export default function OnAir() {
                 {screen}
               </div>
             </RetroTV>
+            <TVSoundButton muted={muted} onToggle={() => setMuted((m) => !m)} />
           </div>
         </div>
 
         <p className="mx-auto mt-10 max-w-[820px] text-center text-sm text-muted">
-          <b className="font-medium text-ink">VHF</b> knob changes channel · <b className="font-medium text-ink">UHF</b> colour / B&amp;W · orange light is power
+          <b className="font-medium text-ink">VHF</b> knob changes channel · <b className="font-medium text-ink">UHF</b> colour / B&amp;W · <b className="font-medium text-ink">SOUND</b> for the video channels · orange light is power
         </p>
       </div>
     </section>
