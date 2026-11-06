@@ -1,5 +1,8 @@
-import type { CSSProperties } from "react";
+import type { ComponentProps, CSSProperties } from "react";
 import ServiceIcon from "./ServiceIcon";
+
+/** the exact icon names ServiceIcon accepts (keeps TypeScript happy) */
+type IconName = ComponentProps<typeof ServiceIcon>["name"];
 
 /**
  * The service "planet": an orange globe with the service icon, two orbit rings,
@@ -61,7 +64,8 @@ export default function OrbitPlanet({ icon, seed }: { icon: string; seed: string
       {/* planet */}
       <div className="op-float absolute inset-[30%]">
         <div className="grid h-full w-full place-items-center rounded-full bg-[radial-gradient(circle_at_32%_28%,#ffc58f_0%,#f6811f_45%,#b45a0c_100%)] text-white shadow-[inset_-14px_-18px_32px_rgba(0,0,0,0.35),0_0_90px_10px_rgba(246,129,31,0.35)]">
-          <ServiceIcon name={icon} className="h-[38%] w-[38%] drop-shadow" />
+          {/* icon comes from lib/services as a string; cast it to ServiceIcon's name type */}
+          <ServiceIcon name={icon as IconName} className="h-[38%] w-[38%] drop-shadow" />
         </div>
       </div>
 
