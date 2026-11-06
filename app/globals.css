@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Rubik Variable", Rubik, Helvetica, Arial, sans-serif;
+/* the site font: Sora, set up in app/layout.tsx (next/font/local → --font-sora) */
+@theme inline {
+  --font-sans: var(--font-sora), "Sora", Helvetica, Arial, sans-serif;
+}
 
+@theme {
   --color-brand: #f6811f;
   --color-brand-deep: #d26c05;
   --color-brand-soft: #fde9d6;
@@ -18,8 +21,12 @@
 html {
   background: var(--color-paper);
   color: var(--color-ink);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
+
+/* form controls don't inherit the page font by default */
+button, input, select, textarea { font-family: inherit; }
 
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }

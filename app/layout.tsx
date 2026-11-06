@@ -1,8 +1,18 @@
 import type { Metadata } from "next";
-// Rubik — the same font family used on mindstory.in (self-hosted, no external request)
-import "@fontsource-variable/rubik";
+import localFont from "next/font/local";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
+
+// Sora — self-hosted variable font (weights 100–800), loaded by Next.js:
+// preloaded, no external request, no layout shift (size-adjusted fallback).
+const sora = localFont({
+  src: "./fonts/Sora-Variable.woff2",
+  variable: "--font-sora",
+  weight: "100 800",
+  style: "normal",
+  display: "swap",
+  fallback: ["Helvetica", "Arial", "sans-serif"],
+});
 
 export const metadata: Metadata = {
   title: "Top Digital Marketing Agency in Thrissur, Kerala | Mindstory",
@@ -22,7 +32,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={sora.variable}>
       <body className="font-sans">
         <SmoothScroll />
         {children}
