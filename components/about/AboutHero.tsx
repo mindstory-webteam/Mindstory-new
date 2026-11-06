@@ -1,14 +1,18 @@
 import Link from "next/link";
 import SpaceLaunch from "./SpaceLaunch";
+import RotatingWords from "./RotatingWords";
 
-/* where the launch pad sits horizontally (0 = left, 1 = right) */
+/* where the launch pad sits horizontally on desktop (0 = left, 1 = right) */
 const STATION_X = 0.76;
+
+/* the words that cycle at the end of the headline */
+const WORDS = ["sell brands.", "build trust.", "drive growth.", "win hearts.", "spark action."];
 
 export default function AboutHero() {
   return (
     <section
       id="top"
-      className="relative isolate overflow-hidden bg-ink pb-48 pt-36 text-white md:pb-44 md:pt-44 lg:min-h-[760px]"
+      className="relative isolate flex items-center overflow-hidden bg-ink pb-[330px] pt-32 text-white sm:pb-[370px] md:pt-40 lg:min-h-[820px] lg:pb-28"
     >
       {/* starfield — matches the space feel of the home hero */}
       <div
@@ -27,19 +31,25 @@ export default function AboutHero() {
         }}
       />
 
-      {/* warm glow behind the pad */}
+      {/* warm glow behind the pad (right side, level with the copy) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 -z-10 h-[520px] w-[520px] -translate-x-1/2 translate-y-1/3 rounded-full bg-brand/15 blur-[120px]"
+        className="pointer-events-none absolute bottom-0 left-1/2 -z-10 h-[520px] w-[520px] -translate-x-1/2 translate-y-1/3 rounded-full bg-brand/15 blur-[120px] lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2 lg:translate-y-[-30%]"
+        style={{ ["--x" as string]: `${STATION_X * 100}%` }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 -z-10 hidden h-[560px] w-[560px] -translate-x-1/2 -translate-y-1/4 rounded-full bg-brand/15 blur-[120px] lg:block"
         style={{ left: `${STATION_X * 100}%` }}
       />
 
-      {/* rollout → countdown → shake → liftoff → space, with the astronaut */}
+      {/* full-section background: rollout → countdown → shake → liftoff → space.
+          Waits for the "Start launch" button on the pad. */}
       <SpaceLaunch stationX={STATION_X} />
 
-      {/* ── copy ── */}
-      <div className="container-x relative z-20">
-        <div className="max-w-4xl">
+      {/* ── copy (left). The wrapper ignores clicks so the Start button on the pad stays clickable. ── */}
+      <div className="container-x pointer-events-none relative z-20 w-full">
+        <div className="pointer-events-auto max-w-xl lg:max-w-[46%]">
           <nav data-reveal="true" aria-label="Breadcrumb" className="text-sm text-white/40">
             <Link href="/" className="transition-colors hover:text-brand">
               Home
@@ -52,11 +62,15 @@ export default function AboutHero() {
             About Mindstory
           </p>
 
+          {/* plain data-reveal (not data-reveal-words): the word splitter would
+              rewrite the DOM that the rotating words need */}
           <h1
-            data-reveal-words="true"
-            className="mt-6 text-[clamp(2.8rem,7vw,6.6rem)] font-medium leading-[0.95] tracking-[-0.04em]"
+            data-reveal="true"
+            className="mt-6 text-[clamp(2.1rem,4.6vw,4.8rem)] font-medium leading-[1.02] tracking-[-0.04em]"
           >
-            We tell stories that <span className="text-brand">sell brands.</span>
+            We tell stories
+            <br />
+            that <RotatingWords words={WORDS} className="text-brand" />
           </h1>
 
           <p data-reveal="true" className="mt-8 max-w-xl text-lg leading-relaxed text-white/60">

@@ -2,18 +2,30 @@ import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Reveal from "@/components/Reveal";
-import { LearnHero, LearnCta, ArrowUpRight } from "@/components/learn/LearnUI";
+import { LearnCta, ArrowUpRight } from "@/components/learn/LearnUI";
 import WorksGrid from "@/components/works/WorksGrid";
+import WorksHero from "@/components/works/WorksHero";
+import WorksDeck from "@/components/works/WorksDeck";
 import { WORKS } from "@/data/works";
 import "@/styles/learn.css";
 import "@/styles/pages.css";
 import "@/styles/works.css";
+import "@/styles/works-hero.css";
 
 export const metadata = {
   title: "Our Work — Case Studies | Mindstory",
   description:
     "Case studies from Mindstory: campaigns, branding, websites and video for brands in automotive, finance, education, fitness and more.",
 };
+
+/* rotating heading: [white line, orange line] */
+// keep each line short (about 15 characters) so it never wraps beside the deck
+const HEADLINES = [
+  ["Work that moves", "the needle."],
+  ["Big ideas.", "Real results."],
+  ["Stories that", "sell brands."],
+  ["Campaigns built", "to perform."],
+];
 
 export default function WorksPage() {
   const clients = WORKS.map((w) => w.client);
@@ -22,11 +34,28 @@ export default function WorksPage() {
     <>
       <Navbar />
       <main className="ls-page">
-        <LearnHero
+        <WorksHero
           crumbs={[{ label: "Home", href: "/" }, { label: "Works" }]}
           eyebrow="Success stories"
-          title={<>Work that moves <em>the needle.</em></>}
+          lines={HEADLINES}
           desc="Campaigns, identities and websites for brands across Kerala and the GCC — and the thinking behind them."
+          visual={<WorksDeck />}
+          below={
+            <>
+              <div className="ls-hero-stats">
+                <div><b>400<span>+</span></b><small>Happy clients</small></div>
+                <div><b>1,500<span>+</span></b><small>Digital campaigns</small></div>
+                <div><b>500M<span>+</span></b><small>People reached</small></div>
+                <div><b>10<span>+</span></b><small>Years of growth</small></div>
+              </div>
+
+              <div className="ls-marquee" aria-hidden="true">
+                <div className="ls-marquee-track">
+                  {[...clients, ...clients].map((c, i) => <span key={i}>{c}</span>)}
+                </div>
+              </div>
+            </>
+          }
         >
           <div className="ls-hero-actions">
             <a href="#projects" className="ls-btn ls-btn--orange">
@@ -36,20 +65,7 @@ export default function WorksPage() {
               Start a project <span className="ls-btn-icon"><ArrowUpRight /></span>
             </a>
           </div>
-
-          <div className="ls-hero-stats">
-            <div><b>400<span>+</span></b><small>Happy clients</small></div>
-            <div><b>1,500<span>+</span></b><small>Digital campaigns</small></div>
-            <div><b>500M<span>+</span></b><small>People reached</small></div>
-            <div><b>10<span>+</span></b><small>Years of growth</small></div>
-          </div>
-
-          <div className="ls-marquee" aria-hidden="true">
-            <div className="ls-marquee-track">
-              {[...clients, ...clients].map((c, i) => <span key={i}>{c}</span>)}
-            </div>
-          </div>
-        </LearnHero>
+        </WorksHero>
 
         <section className="ls-section" id="projects" style={{ scrollMarginTop: 80 }}>
           <div className="ls-wrap">

@@ -1,18 +1,17 @@
 "use client";
 
-import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import AstronautRocket from "./AstronautRocket";
 import LaunchStation from "./LaunchStation";
 
 /**
- * The About-hero launch show:
+ * The About-hero launch show — lives inside the right-hand "launch window" panel.
+ *   idle → the pad waits with a Start button
  *   rollout → a transporter backs the rocket in from the right and raises it on the pad
  *   countdown → T-5 … T-1
  *   ignition → the whole section shakes, smoke billows
  *   ascent → the rocket climbs, the ground scrolls away, space fades in
- *   space → the rocket follows the cursor (or wanders); now and then the astronaut
- *           floats out on a tether and says hi (clicking the rocket does it too)
+ *   space → the rocket follows the cursor (or wanders), astronaut seated in the cockpit
  */
 
 type Phase = "idle" | "rollout" | "countdown" | "ignition" | "ascent" | "space";
@@ -26,8 +25,6 @@ const LEAVE = 9.6; // transporter gone
 const IGNITE = BEAM + 5; // 5-second countdown
 const LIFT = IGNITE + 1.1; // hold-down, then release
 const ORBIT = LIFT + 5; // reached space
-
-const GREETINGS = ["Hi! 👋", "Hello from Mindstory! 👋", "Hi there! 🚀", "Hey! 👋"];
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const clamp01 = (v: number) => clamp(v, 0, 1);
@@ -51,30 +48,26 @@ function seeded(seed: number) {
   };
 }
 
+/* sizes scale with the panel width, so the station always fits its window */
 const dims = (w: number) => {
-  const mobile = w > 0 && w < 768;
-  const sc = mobile ? 320 / 440 : 1; // launch-station scale
-  const rw = mobile ? 70 : 90; // rocket width
+  const mobile = w > 0 && w < 480;
+  const sc = clamp((w - 24) / 440, 0.6, 1); // launch-station scale
+  const rw = Math.round(90 * Math.max(sc, 0.72)); // rocket width
   const rh = rw * 1.8; // rocket height (200 × 360 art)
-  const aw = rw * 0.75; // astronaut width (matches the seated image)
-  const ah = (aw * 640) / 740;
-  return { mobile, sc, rw, rh, aw, ah };
+  return { mobile, sc, rw, rh };
 };
 
-export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) {
+export default function SpaceLaunch({ stationX = 0.5 }: { stationX?: number }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const groundRef = useRef<HTMLDivElement>(null);
   const truckRef = useRef<HTMLDivElement>(null);
   const beamRef = useRef<HTMLDivElement>(null);
-  const rocketRef = useRef<HTMLButtonElement>(null);
+  const rocketRef = useRef<HTMLDivElement>(null);
   const flameRef = useRef<HTMLDivElement>(null);
   const spaceRef = useRef<HTMLDivElement>(null);
   const farRef = useRef<HTMLDivElement>(null);
   const nearRef = useRef<HTMLDivElement>(null);
   const streaksRef = useRef<HTMLDivElement>(null);
-  const astroRef = useRef<HTMLDivElement>(null);
-  const bubbleRef = useRef<HTMLDivElement>(null);
-  const tetherRef = useRef<SVGPathElement>(null);
   const shakeRef = useRef<Animation | null>(null);
   const reducedRef = useRef(false);
   const sizeRef = useRef({ w: 0, h: 0 });
@@ -91,17 +84,13 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
     vx: 0,
     vy: 0,
     angle: 0,
-    nextWalk: 0,
     pointer: { x: 0, y: 0, at: -99 },
-    walk: { active: false, start: 0, side: 1, offX: 0, offY: 0 },
   });
 
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [phase, setPhase] = useState<Phase>("idle");
   const [count, setCount] = useState(5);
   const [armsIn, setArmsIn] = useState(false);
-  const [seated, setSeated] = useState(true);
-  const [greeting, setGreeting] = useState(GREETINGS[0]);
 
   const stars = useMemo(() => {
     const r = seeded(7);
@@ -127,22 +116,12 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
     };
   }, []);
 
-  const startWalk = useCallback((now: number) => {
-    const S = sim.current;
-    const { w } = sizeRef.current;
-    const { rw } = dims(w);
-    const side = S.x > w * 0.55 ? -1 : 1;
-    S.walk = { active: true, start: now, side, offX: side * 1.45 * rw, offY: -0.55 * rw };
-    setSeated(false);
-    setGreeting(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
-  }, []);
-
   /* ── the animation loop ── */
   useEffect(() => {
     const S = sim.current;
     reducedRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const nowS = performance.now() / 1000;
-    S.start = reducedRef.current ? nowS - ORBIT : nowS + 0.6;
+    // nothing happens until the Start button is pressed
+    S.start = Number.POSITIVE_INFINITY;
 
     const stage = stageRef.current;
     if (!stage) return;
@@ -176,14 +155,11 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
       const flame = flameRef.current;
       const space = spaceRef.current;
       const streaks = streaksRef.current;
-      const astro = astroRef.current;
-      const bubble = bubbleRef.current;
-      const tether = tetherRef.current;
-      if (!ground || !truck || !beam || !rocket || !flame || !space || !streaks || !astro || !bubble || !tether) return;
+      if (!ground || !truck || !beam || !rocket || !flame || !space || !streaks) return;
 
       const { w, h } = sizeRef.current;
       if (!w || !h) return;
-      const { mobile, sc, rw, rh, aw, ah } = dims(w);
+      const { mobile, sc, rw, rh } = dims(w);
       const padY = h - 34 * sc; // top of the launch mount
       const sx = stationX * w;
       const t = now - S.start;
@@ -210,7 +186,6 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
       let ny: number;
       let angle: number;
       let thrust = 0;
-      let walkM = 0;
 
       if (ph !== "space") {
         /* ── on the ground ── */
@@ -252,7 +227,7 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
         space.style.opacity = String(clamp01(cam / (h * 0.9)));
         streaks.style.opacity = String(t >= LIFT ? clamp01(cam / 160) * (1 - clamp01((t - (ORBIT - 1.4)) / 1.4)) : 0);
       } else {
-        /* ── in space ── */
+        /* ── in space: follow the cursor, or wander ── */
         if (!S.roamInit) {
           S.roamInit = true;
           S.x = sx;
@@ -260,7 +235,6 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
           S.vx = 0;
           S.vy = -60;
           S.angle = 0;
-          S.nextWalk = now + 4.5;
           ground.style.visibility = "hidden";
           truck.style.visibility = "hidden";
           beam.style.visibility = "hidden";
@@ -270,11 +244,11 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
 
         const p = S.pointer;
         const follow = now - p.at < 3.5;
-        let tx = follow ? p.x : w * ((mobile ? 0.5 : 0.66) + (mobile ? 0.3 : 0.24) * Math.sin(now * 0.21));
+        let tx = follow ? p.x : w * (0.5 + (mobile ? 0.28 : 0.3) * Math.sin(now * 0.21));
         let ty = follow ? p.y + rh * 0.1 : h * (0.46 + 0.26 * Math.sin(now * 0.33 + 1.2));
         tx = clamp(tx, rw, w - rw);
         ty = clamp(ty, rh * 0.6, h - rh * 0.6);
-        const k = S.walk.active ? 1.4 : follow ? 3.4 : 1.1;
+        const k = follow ? 3.4 : 1.1;
         const damp = 2 * Math.sqrt(k) * 0.75;
         S.vx += ((tx - S.x) * k - S.vx * damp) * dt;
         S.vy += ((ty - S.y) * k - S.vy * damp) * dt;
@@ -294,64 +268,7 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
           farRef.current.style.transform = `translate3d(${px * -0.012}px, ${py * -0.012}px, 0)`;
           nearRef.current.style.transform = `translate3d(${px * -0.03}px, ${py * -0.03}px, 0)`;
         }
-
-        /* ── spacewalk ── */
-        if (!S.walk.active && now >= S.nextWalk && !reducedRef.current) startWalk(now);
-        if (S.walk.active) {
-          const W = S.walk;
-          const wt = now - W.start;
-          if (wt >= 7.4) {
-            W.active = false;
-            S.nextWalk = now + 12 + Math.random() * 8;
-            setSeated(true);
-          } else {
-            walkM = wt < 1.4 ? easeOut(wt / 1.4) : wt < 6 ? 1 : 1 - easeInOut((wt - 6) / 1.4);
-            // where the astronaut sits in the cockpit (image centre), in world space
-            const seat = rot(-0.06 * rw, -rh + ah / 2, angle);
-            const ancX = nx + seat.x;
-            const ancY = ny + seat.y;
-            // float beside the rocket, trailing behind its motion
-            const fx = W.side * 1.45 * rw + Math.sin(now * 1.7) * 6 - S.vx * 0.14;
-            const fy = -0.55 * rw + Math.cos(now * 1.3) * 8 - S.vy * 0.14;
-            W.offX += (fx - W.offX) * Math.min(1, dt * 3);
-            W.offY += (fy - W.offY) * Math.min(1, dt * 3);
-            const ax = ancX + W.offX * walkM;
-            const ay = ancY + W.offY * walkM;
-            const hi = wt > 1.6 && wt < 5.6;
-            const floatA = W.side * -10 + Math.sin(now * 1.1) * 10 + (hi ? Math.sin(now * 9) * 7 : 0);
-            const aAng = lerp(angle, floatA, walkM);
-
-            astro.style.transform = `translate3d(${ax - aw / 2}px, ${ay - ah / 2}px, 0) rotate(${aAng}deg)`;
-            astro.style.opacity = "1";
-            astro.style.zIndex = walkM < 0.35 ? "2" : "4";
-
-            // tether: cockpit rim → astronaut's waist
-            const ck = rot(0, -0.661 * rh, angle);
-            const x1 = nx + ck.x;
-            const y1 = ny + ck.y;
-            const waist = rot(0, ah * 0.3, aAng);
-            const x2 = ax + waist.x;
-            const y2 = ay + waist.y;
-            const dx = x2 - x1;
-            const dy = y2 - y1;
-            const len = Math.hypot(dx, dy) || 1;
-            const sag = (16 + Math.sin(now * 1.4) * 10) * walkM;
-            const cx = (x1 + x2) / 2 + (-dy / len) * sag * W.side;
-            const cy = (y1 + y2) / 2 + (dx / len) * sag * W.side;
-            tether.setAttribute("d", `M${x1.toFixed(1)} ${y1.toFixed(1)} Q${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`);
-
-            const op = clamp01((wt - 1.5) / 0.35) * (1 - clamp01((wt - 5.4) / 0.35));
-            bubble.style.transform = `translate3d(${ax}px, ${ay - ah * 0.6}px, 0) translate(-50%, -100%) scale(${0.85 + 0.15 * op})`;
-            bubble.style.opacity = String(op);
-          }
-        }
       }
-
-      if (walkM <= 0) {
-        astro.style.opacity = "0";
-        bubble.style.opacity = "0";
-      }
-      tether.style.opacity = walkM > 0.01 ? "1" : "0";
 
       rocket.style.visibility = "visible";
       rocket.style.transform = `translate3d(${nx - rw / 2}px, ${ny - rh}px, 0) rotate(${angle}deg)`;
@@ -366,12 +283,13 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
       ro.disconnect();
       window.removeEventListener("pointermove", onMove);
     };
-  }, [stationX, startWalk]);
+  }, [stationX]);
 
   /* ── shake the whole section at ignition ── */
   useEffect(() => {
     if (phase !== "ignition" || reducedRef.current) return;
-    const section = stageRef.current?.closest("section");
+    // shake the launch window (falls back to the whole section)
+    const section = stageRef.current?.closest<HTMLElement>("[data-launch-panel]") ?? stageRef.current?.closest("section");
     if (!section) return;
     const n = 40;
     const frames: Keyframe[] = Array.from({ length: n + 1 }, (_, i) => {
@@ -386,22 +304,22 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
   }, [phase]);
   useEffect(() => () => shakeRef.current?.cancel(), []);
 
+  const start = () => {
+    const S = sim.current;
+    const now = performance.now() / 1000;
+    S.roamInit = false;
+    S.start = reducedRef.current ? now - ORBIT : now + 0.15;
+  };
   const skip = () => {
     sim.current.start = performance.now() / 1000 - ORBIT;
   };
-  const replay = () => {
+  const reset = () => {
     const S = sim.current;
-    S.start = performance.now() / 1000 + 0.3;
-    S.walk.active = false;
+    S.start = Number.POSITIVE_INFINITY; // back to the pad, waiting for Start
     S.roamInit = false;
-    setSeated(true);
-  };
-  const onRocketClick = () => {
-    const S = sim.current;
-    if (S.phase === "space" && !S.walk.active) startWalk(performance.now() / 1000);
   };
 
-  const { sc, rw, rh, aw, ah } = dims(size.w);
+  const { sc, rw, rh } = dims(size.w);
   const sx = stationX * size.w;
   const firing = phase === "ignition" || phase === "ascent";
   const screen =
@@ -427,8 +345,10 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
         @keyframes sl-fade { 0%,60% { opacity: 1 } 100% { opacity: 0 } }
         .sl-pop { animation: sl-pop .35s cubic-bezier(.2,.8,.2,1) both }
         .sl-fade { animation: sl-fade 2.4s ease-out forwards }
+        @keyframes sl-ring { 0% { box-shadow: 0 0 0 0 rgba(246,129,31,.55), 0 14px 40px -10px rgba(246,129,31,.9) } 100% { box-shadow: 0 0 0 18px rgba(246,129,31,0), 0 14px 40px -10px rgba(246,129,31,.9) } }
+        .sl-start { animation: sl-ring 1.8s ease-out infinite }
         @media (prefers-reduced-motion: reduce) {
-          .sl-star, .sl-streak, .sl-flicker { animation: none !important }
+          .sl-star, .sl-streak, .sl-flicker, .sl-start { animation: none !important }
         }
       `}</style>
 
@@ -465,7 +385,7 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
           </div>
         ))}
         {/* ringed planet */}
-        <div className="absolute right-[5%] top-[10%] h-[clamp(110px,17vw,230px)] w-[clamp(110px,17vw,230px)]">
+        <div className="absolute right-[8%] top-[8%] h-[clamp(80px,11vw,150px)] w-[clamp(80px,11vw,150px)]">
           <div
             className="absolute inset-0 rounded-full"
             style={{
@@ -514,14 +434,14 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
             {phase === "countdown" ? (
               <p
                 key={count}
-                className="sl-pop mt-2 font-mono text-[clamp(3.5rem,8vw,7rem)] font-semibold leading-none tabular-nums text-brand"
+                className="sl-pop mt-2 font-mono text-[clamp(3rem,6vw,5.5rem)] font-semibold leading-none tabular-nums text-brand"
               >
                 T-{count}
               </p>
             ) : (
               <p
                 key={phase}
-                className={`sl-pop mt-3 font-mono text-[clamp(2rem,4.5vw,3.75rem)] font-semibold leading-none text-brand ${phase === "ascent" ? "sl-fade" : ""}`}
+                className={`sl-pop mt-3 font-mono text-[clamp(1.8rem,3.6vw,3rem)] font-semibold leading-none text-brand ${phase === "ascent" ? "sl-fade" : ""}`}
               >
                 {phase === "ignition" ? "IGNITION" : "LIFTOFF!"}
               </p>
@@ -566,25 +486,11 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
         </svg>
       </div>
 
-      {/* tether */}
-      <svg className="absolute inset-0 z-[1] h-full w-full overflow-visible" aria-hidden="true">
-        <path
-          ref={tetherRef}
-          fill="none"
-          stroke="#f1ece6"
-          strokeWidth="2"
-          strokeLinecap="round"
-          style={{ opacity: 0 }}
-        />
-      </svg>
-
-      {/* ── the rocket ── */}
-      <button
+      {/* ── the rocket (astronaut always seated inside) ── */}
+      <div
         ref={rocketRef}
-        type="button"
-        onClick={onRocketClick}
-        aria-label="Say hi to the Mindstory astronaut"
-        className="pointer-events-auto absolute left-0 top-0 z-[3] cursor-pointer outline-none"
+        aria-hidden="true"
+        className="absolute left-0 top-0 z-[3]"
         style={
           {
             width: rw,
@@ -619,39 +525,63 @@ export default function SpaceLaunch({ stationX = 0.76 }: { stationX?: number }) 
             <path d="M4 0 Q20 6 36 0 Q30 55 20 100 Q10 55 4 0Z" fill="url(#sl-flame)" />
           </svg>
         </div>
-        <AstronautRocket seated={seated} />
-      </button>
+        <AstronautRocket />
+      </div>
 
-      {/* ── astronaut on a spacewalk ── */}
-      <div ref={astroRef} className="absolute left-0 top-0" style={{ width: aw, height: ah, opacity: 0 }}>
-        <Image
-          src="/astronaut-seated.webp"
-          alt=""
-          width={740}
-          height={640}
-          draggable={false}
-          sizes="160px"
-          className="h-full w-full max-w-none"
-        />
-      </div>
-      <div
-        ref={bubbleRef}
-        className="absolute left-0 top-0 z-[5] whitespace-nowrap rounded-2xl bg-white px-4 py-2 text-sm font-medium text-ink shadow-lg"
-        style={{ opacity: 0, transformOrigin: "50% 100%" }}
-      >
-        {greeting}
-        <span className="absolute left-1/2 top-full -translate-x-1/2 border-x-[6px] border-t-[7px] border-x-transparent border-t-white" />
-      </div>
+      {/* ── Start button, sitting on the launch pad ── */}
+      {phase === "idle" && size.w > 0 && (
+        <div
+          className="absolute z-[8] flex -translate-x-1/2 flex-col items-center gap-3"
+          // just above the gantry (tower tops are 224 units above the deck)
+          style={{ left: sx, bottom: 236 * sc + 24 }}
+        >
+          <button
+            type="button"
+            onClick={start}
+            className="sl-start pointer-events-auto group relative inline-flex items-center gap-3 rounded-full bg-brand py-2 pl-2 pr-6 text-sm font-semibold text-white shadow-[0_14px_40px_-10px_rgba(246,129,31,0.9)] transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+          >
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-white text-ink transition-transform duration-500 group-hover:scale-110">
+              <svg viewBox="0 0 24 24" className="ml-0.5 h-4 w-4" fill="currentColor" aria-hidden="true">
+                <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z" />
+              </svg>
+            </span>
+            Start launch
+          </button>
+          <span className="whitespace-nowrap text-[11px] uppercase tracking-[0.3em] text-white/45">Mindstory-1 · ready</span>
+        </div>
+      )}
 
       {/* controls */}
       {phase !== "idle" && (
-        <button
-          type="button"
-          onClick={phase === "space" ? replay : skip}
-          className="pointer-events-auto absolute bottom-6 right-6 z-[7] rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs text-white/70 backdrop-blur transition-colors hover:border-brand hover:text-white"
-        >
-          {phase === "space" ? "↻ Replay launch" : "Skip to space →"}
-        </button>
+        <div className="pointer-events-auto absolute bottom-4 right-4 z-[7] flex gap-2">
+          {phase !== "space" && (
+            <button
+              type="button"
+              onClick={skip}
+              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs text-white/70 backdrop-blur transition-colors hover:border-brand hover:text-white"
+            >
+              Skip to space →
+            </button>
+          )}
+          {phase === "space" && (
+            <>
+              <button
+                type="button"
+                onClick={start}
+                className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs text-white/70 backdrop-blur transition-colors hover:border-brand hover:text-white"
+              >
+                ↻ Launch again
+              </button>
+              <button
+                type="button"
+                onClick={reset}
+                className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs text-white/70 backdrop-blur transition-colors hover:border-brand hover:text-white"
+              >
+                Back to pad
+              </button>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

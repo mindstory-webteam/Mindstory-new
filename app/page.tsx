@@ -12,6 +12,8 @@ import Faq from "@/components/Faq";
 import Footer from "@/components/Footer";
 import Reveal from "@/components/Reveal";
 import Preloader from "@/components/Preloader";
+import AboutTeam from "@/components/about/AboutTeam";
+import TeamGrid from "@/components/TeamGrid";
 
 export default function Home() {
   return (
@@ -27,6 +29,7 @@ export default function Home() {
         <Work />
         <OnAir />
         <WhyUs />
+      <TeamGrid/>
         <Reviews />
         <Blogs />
         <Faq />

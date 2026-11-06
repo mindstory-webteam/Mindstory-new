@@ -2,9 +2,10 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Reveal from "@/components/Reveal";
-import { LearnHero, ArrowUpRight } from "@/components/learn/LearnUI";
+import { ArrowUpRight } from "@/components/learn/LearnUI";
 import Icon from "@/components/site/Icon";
 import ContactForm from "@/components/contact/ContactForm";
+import ContactHero from "@/components/contact/ContactHero";
 import "@/styles/learn.css";
 import "@/styles/pages.css";
 
@@ -33,15 +34,11 @@ export default function ContactPage() {
     <>
       <Navbar />
       <main className="ls-page">
-        <LearnHero
-          crumbs={[{ label: "Home", href: "/" }, { label: "Contact" }]}
-          eyebrow="Contact"
-          title={<>Let&apos;s start your <em>success story.</em></>}
-          desc="Tell us where you want to grow. We'll set up a free consultation, look at what you're doing today and suggest a plan that fits."
-        />
+        {/* star field background · rotating heading · globe on the right */}
+        <ContactHero />
 
-        {/* ── Quick contact cards (overlap the hero) ── */}
-        <div className="ls-wrap">
+        {/* ── Quick contact cards (overlap the banner) ── */}
+        <div className="ls-wrap" style={{ position: "relative", zIndex: 5 }}>
           <div className="ls-contact-cards">
             {CONTACTS.map((c) => {
               const inner = (
@@ -66,7 +63,7 @@ export default function ContactPage() {
         </div>
 
         {/* ── Form ── */}
-        <section className="ls-section">
+        <section className="ls-section" id="enquiry" style={{ scrollMarginTop: 80 }}>
           <div className="ls-wrap ls-contact-layout">
             <div className="ls-contact-side">
               <span className="ls-eyebrow">Get a proposal</span>
@@ -86,7 +83,7 @@ export default function ContactPage() {
         </section>
 
         {/* ── Offices ── */}
-        <section className="ls-section ls-band">
+        <section className="ls-section ls-band" id="offices" style={{ scrollMarginTop: 80 }}>
           <div className="ls-wrap">
             <div className="ls-section-head">
               <div>

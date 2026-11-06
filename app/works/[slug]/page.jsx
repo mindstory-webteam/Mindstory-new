@@ -3,12 +3,15 @@ import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Reveal from "@/components/Reveal";
-import { LearnHero, LearnCta, ArrowUpRight } from "@/components/learn/LearnUI";
+import { LearnCta, ArrowUpRight } from "@/components/learn/LearnUI";
 import WorkCard, { WorkMedia } from "@/components/works/WorkCard";
+import WorksHero from "@/components/works/WorksHero";
+import CaseVisual from "@/components/works/CaseVisual";
 import { WORKS, getWork, typeLabel, industryLabel } from "@/data/works";
 import "@/styles/learn.css";
 import "@/styles/pages.css";
 import "@/styles/works.css";
+import "@/styles/works-hero.css";
 
 export function generateStaticParams() {
   return WORKS.map((w) => ({ slug: w.slug }));
@@ -35,24 +38,40 @@ export default async function WorkDetailPage({ params }) {
   const related = WORKS.filter((w) => w.slug !== work.slug && w.slug !== next.slug &&
     (w.industry === work.industry || w.types.some((t) => work.types.includes(t)))).slice(0, 2);
 
+  // rotating heading: the case title first, then short lines built from the project
+  const headlines = [
+    [work.client, `${work.title}.`],
+    [`${work.category} work`, "that moves the needle."],
+    ["Real results for", `${work.client}.`],
+  ];
+
   return (
     <>
       <Navbar />
       <main className="ls-page">
-        <LearnHero
-          className="ls-case-hero"
+        <WorksHero
+          className="wh-hero--case"
           crumbs={[{ label: "Home", href: "/" }, { label: "Works", href: "/works" }, { label: work.client }]}
           eyebrow={`Case study · ${work.category}`}
-          title={work.title}
+          lines={headlines}
           desc={work.tagline}
+          visual={<CaseVisual work={work} index={idx + 1} total={WORKS.length} />}
         >
           <div className="ls-case-tags">
             {work.services.map((s) => <span key={s}>{s}</span>)}
           </div>
-        </LearnHero>
+          <div className="ls-hero-actions">
+            <a href="/contact#enquiry" className="ls-btn ls-btn--orange">
+              Start a similar project <span className="ls-btn-icon"><ArrowUpRight /></span>
+            </a>
+            <Link href="/works" className="ls-btn ls-btn--ghost">
+              All work <span className="ls-btn-icon"><ArrowUpRight /></span>
+            </Link>
+          </div>
+        </WorksHero>
 
-        <div className="ls-wrap ls-case-cover">
-          <WorkMedia work={work} eager />
+        {/* key facts, overlapping the bottom of the banner */}
+        <div className="ls-wrap wh-facts">
           <div className="ls-case-facts">
             <div><small>Client</small><b>{work.client}</b></div>
             <div><small>Industry</small><b>{industryLabel(work.industry)}</b></div>

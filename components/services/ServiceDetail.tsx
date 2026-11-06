@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCategory, whyMindstory, type Service } from "@/lib/services";
 import StarField from "@/components/StarField";
+import RotatingHeading from "@/components/RotatingHeading";
 import ServiceIcon, { Arrow } from "./ServiceIcon";
 import ServiceCard from "./ServiceCard";
 import ServiceCta from "./ServiceCta";
@@ -22,6 +23,15 @@ function Check() {
 export default function ServiceDetail({ service, related }: { service: Service; related: Service[] }) {
   const category = getCategory(service.category);
   const [mainWork, ...otherWork] = service.showcase;
+
+  // banner heading: the service's own headline first, then a few short lines
+  // built from its name — every pair reads as a complete phrase
+  const headlines: [string, string][] = [
+    [service.headline[0].trim(), service.headline[1]],
+    [service.title, "that drives growth."],
+    [service.title, "done right."],
+    [service.title, "built for your brand."],
+  ];
 
   return (
     <>
@@ -60,13 +70,13 @@ export default function ServiceDetail({ service, related }: { service: Service; 
             <p data-reveal="true" className="eyebrow mt-10 text-white/40">
               {category.label} · {service.title}
             </p>
-            <h1
-              data-reveal-words="true"
-              className="mt-6 text-[clamp(2.6rem,6.4vw,5.8rem)] font-medium leading-[0.96] tracking-[-0.04em]"
-            >
-              {service.headline[0]}
-              <span className="text-brand">{service.headline[1]}</span>
-            </h1>
+            {/* plain data-reveal (not data-reveal-words): the word splitter would rewrite the rotating letters */}
+            <div data-reveal="true">
+              <RotatingHeading
+                lines={headlines}
+                className="mt-6 text-[clamp(2.6rem,6.4vw,5.8rem)] font-medium leading-[0.96] tracking-[-0.04em]"
+              />
+            </div>
             <p data-reveal="true" className="mt-8 max-w-xl text-lg leading-relaxed text-white/60">
               {service.intro}
             </p>
@@ -450,4 +460,4 @@ export default function ServiceDetail({ service, related }: { service: Service; 
       <ServiceCta title={`Ready to start with ${inSentence(service.title)}?`} />
     </>
   );
-}
+}

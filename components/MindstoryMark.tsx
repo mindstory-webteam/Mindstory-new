@@ -4,6 +4,7 @@ import { useId } from "react";
 
 /**
  * The Mindstory "M" as an inline, animated SVG — transparent background.
+ * Shapes are the official mark (mindstory-m.svg, viewBox 0 0 128 128).
  *  1. the outline draws itself
  *  2. it fills with brand orange while the legs rise into place
  *  3. (loop) a light sweep passes over it and the legs gently bob
@@ -15,11 +16,12 @@ type Props = {
   color?: string;
 };
 
-const UPPER = "M12 12H40L64 46L88 12H116V80H94V50L64 92L34 50V80H12Z";
-const LEG_L = "M12 88H34L46 104V116H12Z";
-const LEG_R = "M116 88H94L82 104V116H116Z";
+// from mindstory-m.svg
+const UPPER = "M8 5L63 57L118 5L118 69L63 120L8 69Z";
+const LEG_L = "M8 75L34 100L34 119L8 119Z";
+const LEG_R = "M94 100L118 75L118 119L94 119Z";
 
-export default function MindstoryMark({ className = "", loop = false, color = "#f6811f" }: Props) {
+export default function MindstoryMark({ className = "", loop = false, color = "#F5811D" }: Props) {
   const id = useId().replace(/:/g, "");
 
   return (

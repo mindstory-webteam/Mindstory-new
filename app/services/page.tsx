@@ -3,10 +3,12 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Reveal from "@/components/Reveal";
+import StarField from "@/components/StarField";
+import RotatingHeading from "@/components/RotatingHeading";
 import ServiceCard from "@/components/services/ServiceCard";
 import ServiceCta from "@/components/services/ServiceCta";
-import SpaceBackdrop from "@/components/services/SpaceBackdrop";
 import ServiceIcon from "@/components/services/ServiceIcon";
+import ServicesOrbit from "@/components/services/ServicesOrbit";
 import { categories, getServicesByCategory, services } from "@/lib/services";
 
 export const metadata: Metadata = {
@@ -22,6 +24,14 @@ const approach = [
   { title: "Grow", text: "Monthly reports, honest reviews and constant improvement." },
 ];
 
+/* hero heading phrases: [white line, orange line] */
+const HEADLINES: [string, string][] = [
+  ["Everything your brand", "needs to grow."],
+  ["Strategy, design", "and growth, in-house."],
+  ["One team for brand,", "growth and digital."],
+  ["Ideas that turn into", "real results."],
+];
+
 export default function ServicesPage() {
   return (
     <>
@@ -29,53 +39,74 @@ export default function ServicesPage() {
       <main>
         {/* ── hero ── */}
         <section className="relative isolate overflow-hidden bg-ink pb-20 pt-36 text-white md:pb-28 md:pt-48">
-          <SpaceBackdrop />
+          {/* drifting star field */}
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+            <StarField />
+          </div>
+          {/* warm glow behind the orbit */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -z-10 hidden h-[640px] w-[640px] rounded-full bg-brand/15 blur-[140px] lg:block"
+            style={{ right: "4%", top: "42%", transform: "translateY(-50%)" }}
+          />
+
           <div className="container-x">
-            <nav data-reveal="true" aria-label="Breadcrumb" className="text-sm text-white/40">
-              <Link href="/" className="transition-colors hover:text-brand">
-                Home
-              </Link>
-              <span className="mx-2">/</span>
-              <span className="text-white/70">Services</span>
-            </nav>
+            <div className="grid gap-14 lg:grid-cols-12 lg:items-center">
+              {/* left: copy */}
+              <div className="lg:col-span-7">
+                <nav data-reveal="true" aria-label="Breadcrumb" className="text-sm text-white/40">
+                  <Link href="/" className="transition-colors hover:text-brand">
+                    Home
+                  </Link>
+                  <span className="mx-2">/</span>
+                  <span className="text-white/70">Services</span>
+                </nav>
 
-            <p data-reveal="true" className="eyebrow mt-10 text-white/40">
-              What we do
-            </p>
-            <h1
-              data-reveal-words="true"
-              className="mt-6 max-w-5xl text-[clamp(2.8rem,7vw,6.4rem)] font-medium leading-[0.95] tracking-[-0.04em]"
-            >
-              Everything your brand <span className="text-brand">needs to grow.</span>
-            </h1>
+                <p data-reveal="true" className="eyebrow mt-10 text-white/40">
+                  What we do
+                </p>
 
-            <div className="mt-12 grid gap-10 border-t border-white/10 pt-10 md:grid-cols-12">
-              <p data-reveal="true" className="text-lg leading-relaxed text-white/60 md:col-span-6">
-                Pick one service or let us run the whole thing end to end. {services.length} services across brand, growth
-                and digital — all under one roof in Thrissur and Kochi.
-              </p>
-              <div data-reveal="true" className="flex flex-wrap items-start gap-2 md:col-span-5 md:col-start-8 md:justify-end">
-                {categories.map((c) => (
-                  <a
-                    key={c.id}
-                    href={`#${c.id}`}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 transition-colors hover:border-brand hover:text-white"
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand" />
-                    {c.label}
-                    <span className="text-white/40">{getServicesByCategory(c.id).length}</span>
-                  </a>
-                ))}
+                {/* plain data-reveal (not data-reveal-words): the word splitter would rewrite the rotating letters */}
+                <div data-reveal="true">
+                  <RotatingHeading
+                    lines={HEADLINES}
+                    className="mt-6 text-[clamp(2.4rem,4.6vw,4.6rem)] font-medium leading-[1] tracking-[-0.04em]"
+                  />
+                </div>
+
+                <p data-reveal="true" className="mt-8 max-w-xl text-lg leading-relaxed text-white/60">
+                  Pick one service or let us run the whole thing end to end. {services.length} services across brand, growth
+                  and digital — all under one roof in Thrissur and Kochi.
+                </p>
+
+                <div data-reveal="true" className="mt-8 flex flex-wrap items-center gap-2">
+                  {categories.map((c) => (
+                    <a
+                      key={c.id}
+                      href={`#${c.id}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 transition-colors hover:border-brand hover:text-white"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+                      {c.label}
+                      <span className="text-white/40">{getServicesByCategory(c.id).length}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              {/* right: every service orbiting the planet */}
+              <div data-reveal="true" className="hidden lg:col-span-5 lg:block">
+                <ServicesOrbit />
               </div>
             </div>
 
             {/* all services at a glance */}
-            <div data-reveal="true" className="mt-14 flex flex-wrap gap-3">
+            <div data-reveal="true" className="mt-16 flex flex-wrap gap-3 border-t border-white/10 pt-10">
               {services.map((s) => (
                 <Link
                   key={s.slug}
                   href={`/services/${s.slug}`}
-                  className="group inline-flex items-center gap-2.5 rounded-full bg-white/5 py-2 pl-2 pr-4 text-sm text-white/80 ring-1 ring-white/10 transition-colors hover:bg-brand hover:text-white hover:ring-brand"
+                  className="group inline-flex items-center gap-2.5 rounded-full bg-white/5 py-2 pl-2 pr-4 text-sm text-white/80 ring-1 ring-white/10 backdrop-blur-sm transition-colors hover:bg-brand hover:text-white hover:ring-brand"
                 >
                   <span className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-brand transition-colors group-hover:bg-white group-hover:text-brand">
                     <ServiceIcon name={s.icon} className="h-4 w-4" />
