@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" role="img" aria-label="Mindstory">
+  <style>
+    /* outline draws on, then fills orange */
+    .p {
+      fill: #f6811f;
+      fill-opacity: 0;
+      stroke: #f6811f;
+      stroke-width: 2.5;
+      stroke-linejoin: round;
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+      animation: draw .9s cubic-bezier(.6,0,.2,1) forwards, fill .45s ease .75s forwards;
+    }
+    /* legs rise into place */
+    .leg {
+      animation: draw .9s cubic-bezier(.6,0,.2,1) .15s forwards, fill .45s ease .9s forwards, rise .7s cubic-bezier(.2,.8,.2,1) .2s both;
+    }
+    /* light sweep that repeats every few seconds */
+    .shine { animation: shine 5s ease-in-out 1.6s infinite; }
+
+    @keyframes draw  { to { stroke-dashoffset: 0 } }
+    @keyframes fill  { to { fill-opacity: 1; stroke-width: 0 } }
+    @keyframes rise  { from { transform: translateY(14px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+    @keyframes shine { 0% { transform: translateX(-60px) } 35%, 100% { transform: translateX(200px) } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .p, .leg, .shine { animation: none !important; }
+      .p { fill-opacity: 1; stroke-width: 0; stroke-dashoffset: 0; }
+    }
+  </style>
+
+  <defs>
+    <clipPath id="mm-clip">
+      <path d="M12 12H40L64 46L88 12H116V80H94V50L64 92L34 50V80H12Z" />
+      <path d="M12 88H34L46 104V116H12Z" />
+      <path d="M116 88H94L82 104V116H116Z" />
+    </clipPath>
+    <linearGradient id="mm-shine" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0" />
+      <stop offset=".5" stop-color="#fff" stop-opacity=".55" />
+      <stop offset="1" stop-color="#fff" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- chevron + columns -->
+  <path class="p" pathLength="1" d="M12 12H40L64 46L88 12H116V80H94V50L64 92L34 50V80H12Z" />
+  <!-- legs -->
+  <path class="p leg" pathLength="1" d="M12 88H34L46 104V116H12Z" />
+  <path class="p leg" pathLength="1" d="M116 88H94L82 104V116H116Z" />
+
+  <!-- shine, clipped to the letter -->
+  <g clip-path="url(#mm-clip)">
+    <g transform="skewX(-20)">
+      <rect class="shine" x="-40" y="-10" width="34" height="150" fill="url(#mm-shine)" />
+    </g>
+  </g>
+</svg>

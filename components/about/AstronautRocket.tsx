@@ -4,8 +4,10 @@ import Image from "next/image";
  * The craft art: the Mindstory astronaut seated in the cockpit of a toy rocket.
  * Drawn in a 200 × 360 box — the nozzle sits at the bottom-centre so the
  * flight engine's exhaust lines up with it. Scale it by sizing the parent.
+ *
+ * `seated={false}` empties the cockpit (used while the astronaut is out on a spacewalk).
  */
-export default function AstronautRocket() {
+export default function AstronautRocket({ seated = true }: { seated?: boolean }) {
   return (
     <span className="relative block h-full w-full select-none" aria-hidden="true">
       {/* back layer: cockpit opening + far half of the rim */}
@@ -30,6 +32,7 @@ export default function AstronautRocket() {
         draggable={false}
         sizes="160px"
         className="pointer-events-none absolute left-[6.5%] top-0 w-[75%] max-w-none"
+        style={{ opacity: seated ? 1 : 0 }}
       />
 
       {/* front layer: fuselage, fins, porthole, nozzle */}

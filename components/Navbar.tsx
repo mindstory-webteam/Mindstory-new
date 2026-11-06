@@ -1,23 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import PillNav, { type PillNavItem } from "./PillNav";
-import { nav, site } from "@/lib/data";
+import { site } from "@/lib/data";
+import { categories, getServicesByCategory } from "@/lib/services";
 import { ArrowUpRight } from "./Icons";
 
-// Top-level links (same pages as before) + the on-page section each one lights up for.
-const ITEMS: PillNavItem[] = nav.map((n) => ({ label: n.label, href: n.href }));
-const SECTION_FOR: Record<string, string> = {
-  About: "about",
-  Services: "services",
-  Works: "work",
-  Learn: "blog",
-  Contact: "contact",
-};
+/* ------------------------------------------------------------------ */
+/* Main links — real routes, so they work from every page.             */
+/* `section` = the homepage section that lights the item up on scroll. */
+/* ------------------------------------------------------------------ */
+/* `also` = extra routes that should light the item up (e.g. /guides → Learn) */
+const ROUTES: { label: string; href: string; section?: string; also?: string[] }[] = [
+  { label: "About", href: "/about", section: "about" },
+  { label: "Services", href: "/services", section: "services" },
+  { label: "Works", href: "/works", section: "work" },
+  { label: "Learn", href: "/blog", section: "blog", also: ["/guides", "/faqs"] },
+  { label: "Careers", href: "/careers" },
+  { label: "Contact", href: "/contact", section: "contact" },
+];
+const ITEMS: PillNavItem[] = ROUTES.map((r) => ({ label: r.label, href: r.href }));
 
 /* ------------------------------------------------------------------ */
 /* Mega menu content — keyed by the nav label. Items without an entry  */
-/* (e.g. Contact) behave like normal links. Replace hrefs with yours.  */
+/* behave like normal links.                                           */
 /* ------------------------------------------------------------------ */
 type MegaLink = { label: string; href: string; desc?: string };
 type MegaMenu = {
@@ -39,8 +47,8 @@ const MEGA: Record<string, MegaMenu> = {
       {
         heading: "Company",
         links: [
-          { label: "About Mindstory", href: "/about", desc: "Who we are and how we work" },
-          { label: "Our process", href: "/about#process", desc: "From brief to launch" },
+          { label: "About Mindstory", href: "/about#story", desc: "Who we are and how we work" },
+          { label: "Our journey", href: "/about#journey", desc: "Ten years, year by year" },
           { label: "Team", href: "/about#team", desc: "The people behind the work" },
         ],
       },
@@ -53,38 +61,24 @@ const MEGA: Record<string, MegaMenu> = {
       },
     ],
   },
+
+  // built from lib/services.ts — add a service there and it appears here automatically
   Services: {
     eyebrow: "What we do",
     title: "Everything your brand needs to grow",
     desc: "Pick one service or let us run the whole thing end to end.",
     cta: { label: "All services", href: "/services" },
-    columns: [
-      {
-        heading: "Brand",
-        links: [
-          { label: "Brand strategy", href: "/services/brand-strategy", desc: "Positioning and messaging" },
-          { label: "Identity design", href: "/services/branding", desc: "Logos, systems, guidelines" },
-          { label: "Video production", href: "/services/video", desc: "Ads, reels and films" },
-        ],
-      },
-      {
-        heading: "Growth",
-        links: [
-          { label: "Social media", href: "/services/social-media", desc: "Content and community" },
-          { label: "Performance ads", href: "/services/performance-marketing", desc: "Meta & Google campaigns" },
-          { label: "SEO", href: "/services/seo", desc: "Rank and get found" },
-        ],
-      },
-      {
-        heading: "Digital",
-        links: [
-          { label: "Web design", href: "/services/web-design", desc: "Fast, modern websites" },
-          { label: "E-commerce", href: "/services/ecommerce", desc: "Stores that convert" },
-        ],
-      },
-    ],
+    columns: categories.map((c) => ({
+      heading: c.label,
+      links: getServicesByCategory(c.id).map((s) => ({
+        label: s.title,
+        href: `/services/${s.slug}`,
+        desc: s.short,
+      })),
+    })),
     feature: { tag: "Free audit", title: "Get a free review of your digital presence", href: "/contact" },
   },
+
   Works: {
     eyebrow: "Our work",
     title: "Brands we've helped tell their story",
@@ -112,6 +106,7 @@ const MEGA: Record<string, MegaMenu> = {
     ],
     feature: { tag: "Case study", title: "See how a campaign turned clicks into customers", href: "/works" },
   },
+
   Learn: {
     eyebrow: "Learn",
     title: "Ideas, playbooks and marketing notes",
@@ -122,20 +117,88 @@ const MEGA: Record<string, MegaMenu> = {
         heading: "Resources",
         links: [
           { label: "Blog", href: "/blog", desc: "Latest articles" },
-          { label: "Guides", href: "/blog?tag=guides", desc: "Step-by-step playbooks" },
-          { label: "FAQs", href: "/faq", desc: "Answers to common questions" },
+          { label: "Guides", href: "/guides", desc: "Step-by-step playbooks" },
+          { label: "FAQs", href: "/faqs", desc: "Answers to common questions" },
+        ],
+      },
+      {
+        heading: "Popular guides",
+        links: [
+          { label: "Rank in Google's local pack", href: "/guides#local-seo" },
+          { label: "A clean GA4 setup", href: "/guides#ga4-setup" },
+          { label: "Plan a month of social content", href: "/guides#content-calendar" },
+          { label: "Build a landing page that converts", href: "/guides#landing-page" },
         ],
       },
     ],
+    feature: {
+      tag: "Latest article",
+      title: "Personal AI agents are visiting your website",
+      href: "/blog/personal-ai-agents",
+    },
+  },
+
+  Careers: {
+    eyebrow: "Careers",
+    title: "Help brands tell better stories",
+    desc: "Join a team of strategists, designers and media buyers in Thrissur and Kochi.",
+    cta: { label: "See open roles", href: "/careers#roles" },
+    columns: [
+      {
+        heading: "Work with us",
+        links: [
+          { label: "Open roles", href: "/careers#roles", desc: "Marketing, creative and tech" },
+          { label: "Internships", href: "/careers#internships", desc: "Learn on real briefs" },
+          { label: "Life at Mindstory", href: "/careers#life", desc: "Perks and how we work" },
+        ],
+      },
+      {
+        heading: "Get hired",
+        links: [
+          { label: "How we hire", href: "/careers#hiring", desc: "Four simple steps" },
+          { label: "Apply now", href: "/careers#apply", desc: "Send your CV" },
+        ],
+      },
+    ],
+    feature: { tag: "We're hiring", title: "Find your seat on the ship — roles open now", href: "/careers#roles" },
+  },
+
+  Contact: {
+    eyebrow: "Contact",
+    title: "Let's start your success story",
+    desc: "Tell us where you want to grow — we'll set up a free consultation.",
+    cta: { label: "Send an enquiry", href: "/contact#enquiry" },
+    columns: [
+      {
+        heading: "Reach us",
+        links: [
+          { label: "Enquiry form", href: "/contact#enquiry", desc: "We reply within a day" },
+          { label: "Our offices", href: "/contact#offices", desc: "Thrissur · Kochi · GCC" },
+          { label: "FAQs", href: "/faqs", desc: "Quick answers" },
+        ],
+      },
+      {
+        heading: "Talk now",
+        links: [
+          { label: "+91-8281001410", href: "tel:+918281001410", desc: "Mon–Fri · 10AM to 6PM" },
+          { label: "hello@mindstory.in", href: "mailto:hello@mindstory.in", desc: "Email us anytime" },
+          { label: "WhatsApp", href: "https://wa.me/918281001410", desc: "Chat with the team" },
+        ],
+      },
+    ],
+    feature: { tag: "Free consultation", title: "Get a free review of your digital presence", href: "/contact#enquiry" },
   },
 };
 
 const DESKTOP_QUERY = "(min-width: 1024px)";
 
 export default function Navbar() {
+  const pathname = usePathname() || "/";
+  const isHome = pathname === "/";
+
   const [hidden, setHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [active, setActive] = useState<string | undefined>(undefined);
+  const [spyActive, setSpyActive] = useState<string | undefined>(undefined);
   const [mega, setMega] = useState<string | null>(null); // label of open mega menu
   const [shownMega, setShownMega] = useState<string | null>(null); // keeps content during fade-out
   const [desktop, setDesktop] = useState(false);
@@ -143,6 +206,16 @@ export default function Navbar() {
   const navWrap = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // on inner pages the item for the current route is active (e.g. /services/seo → Services)
+  const routeActive = useMemo(
+    () =>
+      ROUTES.find((r) =>
+        [r.href, ...(r.also ?? [])].some((p) => pathname === p || pathname.startsWith(`${p}/`))
+      )?.href,
+    [pathname]
+  );
+  const active = isHome ? spyActive : routeActive;
 
   // hide on scroll down, show on scroll up
   useEffect(() => {
@@ -156,23 +229,27 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // scroll-spy: the dot follows whichever section is in the middle of the screen
+  // homepage scroll-spy: the active item follows whichever section is in the middle of the screen
   useEffect(() => {
-    const entries = Object.entries(SECTION_FOR)
-      .map(([label, id]) => ({ label, el: document.getElementById(id) }))
-      .filter((e): e is { label: string; el: HTMLElement } => !!e.el);
+    if (!isHome) {
+      setSpyActive(undefined);
+      return;
+    }
+    const entries = ROUTES.filter((r) => r.section)
+      .map((r) => ({ href: r.href, el: document.getElementById(r.section!) }))
+      .filter((e): e is { href: string; el: HTMLElement } => !!e.el);
     const onScroll = () => {
       const mid = window.innerHeight * 0.45;
       const hit = entries.find(({ el }) => {
         const r = el.getBoundingClientRect();
         return r.top <= mid && r.bottom >= mid;
       });
-      setActive(hit ? ITEMS.find((i) => i.label === hit.label)?.href : undefined);
+      setSpyActive(hit?.href);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [isHome]);
 
   /* ---------------- mega menu ---------------- */
 
@@ -209,6 +286,11 @@ export default function Navbar() {
     closeTimer.current = setTimeout(() => setMega(null), 160);
   }, [cancelClose]);
 
+  // close any open menu when the route changes
+  useEffect(() => {
+    setMega(null);
+  }, [pathname]);
+
   // find which nav item (if any) a DOM node belongs to
   const labelFor = (target: EventTarget | null): string | null => {
     const a = (target as HTMLElement | null)?.closest?.("a");
@@ -221,8 +303,11 @@ export default function Navbar() {
     if (!desktop || menuOpen) return;
     const label = labelFor(e.target);
     if (label && MEGA[label]) openMega(label);
-    else if (label) closeMega(); // a plain link like Contact
+    else if (label) closeMega(); // a plain link without a mega menu
   };
+
+  // phone, email and WhatsApp links are plain <a>; WhatsApp opens in a new tab
+  const isExternal = (href: string) => /^(https?:|tel:|mailto:)/.test(href);
 
   // mark PillNav's links that own a mega menu, and keep aria-expanded in sync
   useEffect(() => {
@@ -283,7 +368,7 @@ export default function Navbar() {
       }`}
     >
       <div className="container-x flex items-start justify-between gap-3 pt-4">
-        {/* PillNav: logo mark + pill bar; collapses into its own menu on small screens */}
+        {/* PillNav: animated M logo + pill bar; collapses into its own menu on small screens */}
         <div
           ref={navWrap}
           className="min-w-0 flex-1"
@@ -292,9 +377,9 @@ export default function Navbar() {
           onMouseLeave={() => isOpen && scheduleClose()}
         >
           <PillNav
-            logo="/mindstory.webp"
+            logo="/mindstory-m.svg"
             logoAlt="Mindstory home"
-            logoHref="#top"
+            logoHref={isHome ? "#top" : "/"}
             items={ITEMS}
             activeHref={active ?? ""}
             theme="dark"
@@ -357,7 +442,7 @@ export default function Navbar() {
                     <p className="mt-3 text-xl font-semibold leading-snug tracking-tight">{menu.title}</p>
                     <p className="mt-2 text-sm leading-relaxed text-white/60">{menu.desc}</p>
                   </div>
-                  <a
+                  <Link
                     href={menu.cta.href}
                     onClick={closeMega}
                     className="group mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-white/10 py-1.5 pl-4 pr-1.5 text-sm font-medium transition-colors hover:bg-[#f6811f]"
@@ -366,7 +451,7 @@ export default function Navbar() {
                     <span className="grid h-7 w-7 place-items-center rounded-full bg-white text-ink transition-transform duration-500 group-hover:rotate-45">
                       <ArrowUpRight className="h-3.5 w-3.5" />
                     </span>
-                  </a>
+                  </Link>
                 </div>
 
                 {/* link columns */}
@@ -378,21 +463,47 @@ export default function Navbar() {
                     <div key={col.heading}>
                       <p className="mb-3 px-3 text-xs font-medium uppercase tracking-[0.14em] text-white/40">{col.heading}</p>
                       <ul className="space-y-1">
-                        {col.links.map((l) => (
-                          <li key={l.label}>
-                            <a
-                              href={l.href}
-                              onClick={closeMega}
-                              className="group block rounded-xl px-3 py-2 transition-colors hover:bg-white/[0.08] focus-visible:bg-white/[0.08] focus-visible:outline-none"
-                            >
-                              <span className="flex items-center gap-2 text-sm font-medium">
-                                <span className="h-1.5 w-1.5 rounded-full bg-white/25 transition-colors group-hover:bg-[#f6811f]" />
+                        {col.links.map((l) => {
+                          const current = pathname === l.href;
+                          const cls = `group block rounded-xl px-3 py-2 transition-colors hover:bg-white/[0.08] focus-visible:bg-white/[0.08] focus-visible:outline-none ${
+                            current ? "bg-white/[0.08]" : ""
+                          }`;
+                          const inner = (
+                            <>
+                              <span
+                                className={`block text-sm font-medium transition-colors group-hover:text-[#f6811f] ${
+                                  current ? "text-[#f6811f]" : ""
+                                }`}
+                              >
                                 {l.label}
                               </span>
-                              {l.desc && <span className="mt-0.5 block pl-3.5 text-xs text-white/50">{l.desc}</span>}
-                            </a>
-                          </li>
-                        ))}
+                              {l.desc && <span className="mt-0.5 block text-xs text-white/50">{l.desc}</span>}
+                            </>
+                          );
+                          return (
+                            <li key={l.label}>
+                              {isExternal(l.href) ? (
+                                <a
+                                  href={l.href}
+                                  onClick={closeMega}
+                                  className={cls}
+                                  {...(l.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                                >
+                                  {inner}
+                                </a>
+                              ) : (
+                                <Link
+                                  href={l.href}
+                                  onClick={closeMega}
+                                  aria-current={current ? "page" : undefined}
+                                  className={cls}
+                                >
+                                  {inner}
+                                </Link>
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   ))}
@@ -400,7 +511,7 @@ export default function Navbar() {
 
                 {/* feature card */}
                 {menu.feature && (
-                  <a
+                  <Link
                     href={menu.feature.href}
                     onClick={closeMega}
                     className="group relative col-span-3 flex flex-col justify-end overflow-hidden rounded-2xl p-5"
@@ -416,7 +527,7 @@ export default function Navbar() {
                       {menu.feature.tag}
                     </span>
                     <span className="mt-3 text-base font-semibold leading-snug">{menu.feature.title}</span>
-                  </a>
+                  </Link>
                 )}
               </div>
             )}

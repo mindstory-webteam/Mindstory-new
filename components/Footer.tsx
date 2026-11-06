@@ -23,7 +23,7 @@ const companyLinks = [
   { label: "Request a Free Quote", href: "https://mindstory.in/request-quote/" },
 ];
 
-const BRAND = "Mindstory";
+const BRAND = "#getMindiFied";
 
 // Wall-sign depth: stacked layers form the letter sides (getting darker toward the wall),
 // a thin warm line on top where the neon catches the edge, then the shadow cast on the wall.

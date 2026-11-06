@@ -11,10 +11,12 @@ import Blogs from "@/components/Blogs";
 import Faq from "@/components/Faq";
 import Footer from "@/components/Footer";
 import Reveal from "@/components/Reveal";
+import Preloader from "@/components/Preloader";
 
 export default function Home() {
   return (
     <>
+    <Preloader/>
       <Navbar />
       <main>
         <Hero />

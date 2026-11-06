@@ -1,6 +1,8 @@
 import Link from "next/link";
-import FlyingCraft from "@/components/FlyingCraft";
-import AstronautRocket from "./AstronautRocket";
+import SpaceLaunch from "./SpaceLaunch";
+
+/* where the launch pad sits horizontally (0 = left, 1 = right) */
+const STATION_X = 0.76;
 
 export default function AboutHero() {
   return (
@@ -25,18 +27,18 @@ export default function AboutHero() {
         }}
       />
 
-      {/* glow + orbit ring around the rocket's home on the right */}
+      {/* warm glow behind the pad */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-32 bottom-0 -z-10 h-[520px] w-[520px] rounded-full bg-brand/15 blur-[120px]"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-40 right-[2%] -z-10 hidden h-[480px] w-[480px] rounded-full border border-dashed border-white/10 md:block"
+        className="pointer-events-none absolute bottom-0 -z-10 h-[520px] w-[520px] -translate-x-1/2 translate-y-1/3 rounded-full bg-brand/15 blur-[120px]"
+        style={{ left: `${STATION_X * 100}%` }}
       />
 
+      {/* rollout → countdown → shake → liftoff → space, with the astronaut */}
+      <SpaceLaunch stationX={STATION_X} />
+
       {/* ── copy ── */}
-      <div className="container-x">
+      <div className="container-x relative z-20">
         <div className="max-w-4xl">
           <nav data-reveal="true" aria-label="Breadcrumb" className="text-sm text-white/40">
             <Link href="/" className="transition-colors hover:text-brand">
@@ -76,40 +78,6 @@ export default function AboutHero() {
           </div>
         </div>
       </div>
-
-      {/* ── flight stage: covers the whole banner, clicks pass through to the copy ── */}
-      <div className="pointer-events-none absolute inset-0 z-10">
-        <FlyingCraft
-          bare
-          roam
-          globalPointer
-          homeX={0.86}
-          label="Launch the Mindstory rocket"
-          craftClassName="h-[126px] w-[70px] md:h-[162px] md:w-[90px]"
-          theme="dark"
-          size="medium"
-          jets={1}
-          thrusters={false}
-          altitude={220}
-          hoverTime={10}
-          wobble={1.2}
-          smoke={0.7}
-          turbulence={1}
-          thrustColor="#f6811f"
-          smokeColor="#f1ece6"
-          carryCursor={false}
-          autoLaunch={16}
-          autoLaunchDelay={1.4}
-        >
-          <AstronautRocket />
-        </FlyingCraft>
-      </div>
-
-      {/* launch pad */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 right-0 h-px w-1/2 bg-gradient-to-r from-transparent via-white/20 to-white/5"
-      />
     </section>
   );
 }
