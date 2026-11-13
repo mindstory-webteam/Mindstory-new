@@ -22,8 +22,8 @@ export default function Home() {
     <Preloader/>
       <Navbar />
       <main>
-        {/* <Hero /> */}
-        <SpaceHero/>
+        <Hero />
+        {/* <SpaceHero/> */}
          <Services />
         {/* <Clients /> */}
         <About />
