@@ -14,6 +14,7 @@ import Reveal from "@/components/Reveal";
 import Preloader from "@/components/Preloader";
 import AboutTeam from "@/components/about/AboutTeam";
 import TeamGrid from "@/components/TeamGrid";
+import SpaceHero from "@/components/SpaceHero";
 
 export default function Home() {
   return (
@@ -21,7 +22,8 @@ export default function Home() {
     <Preloader/>
       <Navbar />
       <main>
-        <Hero />
+        {/* <Hero /> */}
+        <SpaceHero/>
          <Services />
         {/* <Clients /> */}
         <About />
